@@ -2,7 +2,7 @@
 
 > Translation layer for a jobspec specification to cluster execution
 
-![img/jobspec-bot.png](img/jobspec-bot.png)
+![https://github.com/compspec/jobspec/blob/main/img/jobspec-bot.png?raw=true](https://github.com/compspec/jobspec/blob/main/img/jobspec-bot.png?raw=true)
 
 This is intended to work with the prototype [rainbow](https://github.com/converged-computing/rainbow) scheduler.
 Jobspec is an entity of [flux-framework](https://flux-framework.org).

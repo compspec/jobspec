@@ -1,11 +1,3 @@
-from .memory import MemoryBackend
+from .flux import Transformer as FluxTransformer
 
-
-def get_backend(name, options):
-    """
-    Get a named backend.
-    """
-    name = name.lower()
-    if name == "memory":
-        return MemoryBackend(**options)
-    raise ValueError(f"Backend {name} is not a known graph database backend")
+plugins = [FluxTransformer]

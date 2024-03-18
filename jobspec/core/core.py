@@ -11,12 +11,14 @@ import jobspec.schema as schema
 import jobspec.utils as utils
 
 
-class JobspecV1:
-    def __init__(self, filename, validate=True, schema=schema.jobspec_v1):
+class Jobspec:
+    def __init__(self, filename, validate=True, schema=schema.jobspec_v2):
         """
         Load in and validate a Flux Jobspec
         """
-        self.schema = schema
+        # This should typically be loaded from jobspec.core
+        if not hasattr(self, "schema") or not self.schema:
+            self.schema = schema
         self.filename = filename
         self.jobspec = None
         self.load(filename)

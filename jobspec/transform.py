@@ -25,11 +25,15 @@ class TransformerBase:
             setattr(self, key, value)
 
     @classmethod
-    def register_step(cls, step):
+    def register_step(cls, step, name=None):
         """
         Register a step class to the transformer
         """
-        cls.steps[step.name] = step
+        # Allow registering an empty step if needed
+        # An empty step does nothing, an explicit declaration
+        # by the transformer developer it's not needed, etc.
+        name = name or step.name
+        cls.steps[name] = step
 
     def parse(self, jobspec):
         """

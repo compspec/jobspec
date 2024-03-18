@@ -1,3 +1,6 @@
+import jobspec.steps.helpers as helpers
+
+
 class StepBase:
     """
     A base step describes the design of a step.
@@ -32,7 +35,25 @@ class StepBase:
                 raise ValueError(f"Step {self.name} has undefined field {field}")
 
     def validate(self):
+        """
+        Validate the step
+        """
         pass
+
+    def flatten_slot(self):
+        """
+        Find the task slot, flatten it, and return
+        """
+        slot = self.jobspec["task"]["slot"]
+        resources = self.jobspec.get("resources", [])
+
+        # Traverse each section. There is usually only one I guess
+        for resource in resources:
+            flat = {}
+            if helpers.find_resources(flat, resource, slot):
+                break
+
+        return flat
 
     @property
     def scripts(self):

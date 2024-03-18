@@ -2,6 +2,8 @@
 
 > Translation layer for a jobspec specification to cluster execution
 
+[![PyPI version](https://badge.fury.io/py/jobspec.svg)](https://badge.fury.io/py/jobspec)
+
 ![https://github.com/compspec/jobspec/blob/main/img/jobspec-bot.png?raw=true](https://github.com/compspec/jobspec/blob/main/img/jobspec-bot.png?raw=true)
 
 This is intended to work with the prototype [rainbow](https://github.com/converged-computing/rainbow) scheduler.

@@ -1,0 +1,5 @@
+jobspec.egg-info
+build
+dist
+env
+.eggs

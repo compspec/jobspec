@@ -12,6 +12,21 @@ for a specific clusters scheduler. If you think it looks too simple then I'd say
 
 ## Usage
 
+A transformer provides one or more steps for the jobpsec to be transformed and understood for a particular
+execution environment. They include:
+
+| Name   | Description |
+|--------|-------------|
+| write  | write a file in the staging directory |
+| stage  | stage a file across nodes |
+| submit | submit the job |
+| batch  | submit the job with a batch command (more common in HPC) |
+| auth   | authenticate with some service |
+
+These are the basic steps that @vsoch needs now for scheduling experiments, and more can be added (or tweaked) if needed.
+
+### Steps
+
 ### Example
 
 Start up the development environment to find yourself in a container with flux. Start a test instance:
@@ -45,8 +60,23 @@ jobspec - it can be a file that the jobspec writes, and then the command is issu
 it there for the time being, mostly because it looks nicer. I'm sure someone will disagree with me about that.
 
 ```bash
+# Example showing without watching (waiting) and showing output
+jobspec run ./examples/hello-world-jobspec.yaml
 
+# Example that shows waiting for output
+jobspec run ./examples/hello-world-wait-jobspec.yaml
+
+# Example with batch using flux
+jobspec run ./examples/hello-world-batch.yaml
 ```
+
+Note that the default transformer is flux, so the above are equivalent to:
+
+```bash
+jobspec run -t flux ./examples/hello-world-wait-jobspec.yaml
+jobspec run --transformer flux ./examples/hello-world-wait-jobspec.yaml
+```
+
 
 ### Details
 
@@ -105,7 +135,9 @@ Jobspec is an entity of [flux-framework](https://flux-framework.org).
 
 #### Why not rely on Flux internals?
 
-We want a Jobspec to be able to handle a transformation of some logic (the above) into an execution that might not involve flux at all. It could be another workload manager (e.g., Slurm) or it could be a service that submits to some cloud batch API.
+If we lived in a universe of just flux, sure we wouldn't need this. But the world is more than Flux, and we want to extend our Jobspec to that world.
+So we want a Jobspec to be able to handle a transformation of some logic (the above) into an execution that might not involve flux at all. It could be another workload manager (e.g., Slurm),
+Kubernetes, or it could be a service that submits to some cloud batch API.
 
 #### What are all the steps allowed?
 
@@ -130,12 +162,6 @@ There are several likely means of interacting with this library:
 
 For the example usage here, and since the project I am working on is concerned with Flux, we will start with the simplest case - a client that is running inside a flux instance (meaning it can import flux) that reads in a jobspec with a section that defines a set of transforms, and then issues the commands to stage the setup and use flux to run the work defined by the jobspec.
 
-## TODO
-
- - write the hello world example with flux
- - add the staging example
- - write the same, but using batch
-
 ## Developer
 
 ### Organization
@@ -143,6 +169,33 @@ For the example usage here, and since the project I am working on is concerned w
 While you can write an external transformer (as a plugin) a set of core transformers are provided here:
 
  - [jobspec/transformer](jobspec/transformer): core transformer classes that ship internally here.
+
+### Writing a Transformer
+
+For now, the easiest thing to do is add a single file (named by your transformer) to [jobspec/transformer](jobspec/transformer)
+and copy the precedence in the file. A transformer minimally is a class with a name, description, and some number of steps.
+You can then use provided steps in [jobspec/steps](jobstep/steps) or use the `StepBase` to write your own. At the end of
+your transformer file you simply need to register the steps you want to use:
+
+```python
+# A transformer can register shared steps, or custom steps
+Transformer.register_step(steps.WriterStep)
+Transformer.register_step(batch)
+Transformer.register_step(submit)
+Transformer.register_step(stage)
+```
+
+If there is a skip you want the user to be able to define (but skip it for your transformer, for whatever reason you might have)
+just register the empty step with the name you want to skip. As an example, let's say my transforer has no concept of a stage
+(sharing a file across separate nodes) given that it has a shared filesystem. I might want to do:
+
+```python
+import jobspec.steps as steps
+
+# This will not fail validation that the step is unknowb, but skip it
+Transformer.register_step(steps.EmptyStep, name="stage")
+```
+
 
 ## License
 

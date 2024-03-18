@@ -12,25 +12,21 @@ resources:
       type: core
 
 task:
-  command: ["/bin/bash", "job.sh"]
   transform:
   - step: write
-    filename: job.sh
+    filename: batch.sh
     executable: true
 
-  # This is only provided as an example - in the devcontainer it's just one physicap machine!
-  # and filemap I think will likely not work
-  # - step: stage
-  #  filename: job.sh
-
-  - step: submit
-    filename: job.sh
+  - step: batch
+    filename: batch.sh
+    # wait: true
 
   scripts: 
-    - name: job.sh
+    - name: batch.sh
       content: |
         #!/bin/bash
-        echo hello world from $(hostname)
+        flux submit -N 1 --watch echo what is the meaning
+        flux submit -N 1 --watch echo of all of this
   count:
     per_slot: 1
   resources:

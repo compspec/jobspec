@@ -1,4 +1,6 @@
 import json
+import os
+import tempfile
 
 import yaml
 
@@ -19,6 +21,21 @@ def read_file(filename):
     return content
 
 
+def get_tmpdir(tmpdir=None, prefix="", create=True):
+    """
+    Get a temporary directory for an operation.
+    """
+    tmpdir = tmpdir or tempfile.gettempdir()
+    prefix = prefix or "shpc-tmp"
+    prefix = "%s.%s" % (prefix, next(tempfile._get_candidate_names()))
+    tmpdir = os.path.join(tmpdir, prefix)
+
+    if not os.path.exists(tmpdir) and create is True:
+        os.mkdir(tmpdir)
+
+    return tmpdir
+
+
 def read_yaml(filename):
     """
     Read yaml from file
@@ -26,6 +43,14 @@ def read_yaml(filename):
     with open(filename, "r") as fd:
         content = yaml.safe_load(fd)
     return content
+
+
+def write_file(content, filename):
+    """
+    Write content to file
+    """
+    with open(filename, "w") as fd:
+        fd.write(content)
 
 
 def write_yaml(obj, filename):

@@ -1,0 +1,41 @@
+# TODO test these out on on x86, then create arm specs
+version: 1
+resources:
+- count: 4
+  type: node
+  with:
+  - count: 1
+    label: hello-world
+    type: slot
+    with:
+    - count: 4
+      type: core
+
+task:
+  command: ["/bin/bash", "job.sh"]
+  transform:
+  - step: write
+    filename: job.sh
+    executable: true
+
+  # This is only provided as an example - in the devcontainer it's just one physicap machine!
+  #- step: stage
+  #  filename: install.sh
+
+  - step: submit
+    filename: job.sh
+    wait: true
+
+  scripts: 
+    - name: job.sh
+      content: |
+        #!/bin/bash
+        echo hello world from $(hostname)
+  count:
+    per_slot: 1
+  resources:
+    hardware:
+      hardware.gpu.available: 'no'
+    io.archspec:
+      cpu.target: amd64
+  slot: hello-world

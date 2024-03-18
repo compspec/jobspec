@@ -28,10 +28,10 @@ jobs:
         run: |
           apt-get update && apt-get install -y python3-pip
           pip3 install .
-          
+
       # Any additional examples added here will be tested
       - name: Start Flux and Run Examples
         run: |
           which jobspec
-          flux start jobspec run hello-world-jobspec.yaml
-          flux start jobspec run hello-world-batch.yaml
+          flux start jobspec run ./examples/hello-world-jobspec.yaml
+          flux start jobspec run ./examples/hello-world-batch.yaml

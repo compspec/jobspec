@@ -168,23 +168,29 @@ class submit(StepBase):
             if key in js.get("task"):
                 del js["task"][key]
 
+        # Use the filename or fall back to command
+        filename = self.options.get("filename")
+
         # Task -> tasks
         if "task" in js:
             task = js.get("task")
             del js["task"]
             js["tasks"] = [task]
+            if "command" not in task:
+                task["command"] = ["/bin/bash", filename]
 
         # It requires attributes, even if it's empty...
         if "attributes" not in js:
             js["attributes"] = {"system": {"duration": 3600, "cwd": stage}}
 
-        # Are we watching?
-        wait = self.options.get("wait") is True
+        # Are we watching or waiting (note that watching implies waiting?
+        watch = self.options.get("watch") is True
+        wait = self.options.get("wait") is True or watch is True
         flux_jobspec = flux.job.JobspecV1.from_yaml_stream(yaml.dump(js))
-        jobid = flux.job.submit(handle, flux_jobspec, waitable=True)
+        jobid = flux.job.submit(handle, flux_jobspec, waitable=wait)
 
         # 👀️ 👀️ 👀️
-        if wait:
+        if watch:
             watch_job(handle, jobid)
         return jobid.f58plain
 

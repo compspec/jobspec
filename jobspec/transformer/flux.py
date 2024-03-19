@@ -12,8 +12,8 @@ import yaml
 
 import jobspec.steps as steps
 import jobspec.utils as utils
+from jobspec.runner import TransformerBase
 from jobspec.steps.base import StepBase
-from jobspec.transform import TransformerBase
 
 logger = logging.getLogger("jobspec-flux")
 
@@ -44,7 +44,9 @@ class Transformer(TransformerBase):
 
 class stage(StepBase):
     """
-    A stage step uses flux filemap to stage across nodes
+    A copy step uses flux filemap to stage across nodes
+
+    This assumes we don't have a shared filesystem. It is skipped if we do.
     """
 
     name = "stage"
@@ -53,6 +55,15 @@ class stage(StepBase):
         """
         Run the stage step = fall back to filename for now
         """
+        # If we have a sharedfs, return early, the write will have written it there
+        sharedfs = self.options.get("settings", {}).get("sharedfs") is True
+        if sharedfs:
+            return
+
+        # Sanity check staging directory exists across nodes
+        cmd = ["flux", "exec", "-r", "all", "-x", "0", "mkdir", "-p", stage]
+        utils.run_command(cmd, check_output=True)
+
         name = str(uuid.uuid4())
         filename = self.options["filename"]
         cmd = ["flux", "filemap", "map", "--tags", name, "--directory", stage, filename]
@@ -97,51 +108,17 @@ class batch(StepBase):
         if not nodes and not tasks:
             raise ValueError("slot is missing node or core, cannot direct to batch.")
 
-        # I don't think batch has python bindings?
         filename = self.options.get("filename")
-        cmd = ["flux", "batch"]
+        cmd = ["flux", "batch", "--cwd", stage]
         if nodes:
             cmd += ["-N", str(nodes)]
         if tasks:
             cmd += ["-n", str(tasks)]
         cmd.append(filename)
-
-        # Would be nice if this was exposed as "from jobspec"
-        # https://github.com/flux-framework/flux-core/blob/master/src/bindings/python/flux/cli/batch.py#L109-L120
         with utils.workdir(stage):
             res = utils.run_command(cmd, check_output=True)
-
-        # 👀️ 👀️ 👀️
         jobid = res["message"].strip()
-        wait = self.options.get("wait") is True
-        if wait:
-            watch_job(handle, jobid)
         return jobid
-
-
-def watch_job(handle, jobid):
-    """
-    Shared function to watch a job
-    """
-    import flux.job
-
-    if isinstance(jobid, str):
-        jobid = flux.job.JobID(jobid)
-
-    print()
-    watcher = flux.job.watcher.JobWatcher(
-        handle,
-        progress=False,
-        jps=False,  # show throughput with progress
-        log_events=False,
-        log_status=True,
-        labelio=False,
-        wait=True,
-        watch=True,
-    )
-    watcher.start()
-    watcher.add_jobid(jobid)
-    handle.reactor_run()
 
 
 class submit(StepBase):
@@ -157,42 +134,34 @@ class submit(StepBase):
 
     def run(self, stage, *args, **kwargs):
         """
-        Run the submit step
+        Run the submit step.
+
+        The python bindings are giving me weird errors.
         """
-        import flux.job
+        slot = self.flatten_slot()
+        nodes = slot.get("node")
+        tasks = slot.get("core")
 
-        # Parse jobspec into yaml stream, because it doesn't have support for json stream
-        # Also remove "experimental" feature lol
-        js = copy.deepcopy(self.jobspec)
-        for key in ["scripts", "transform", "resources"]:
-            if key in js.get("task"):
-                del js["task"][key]
-
-        # Use the filename or fall back to command
         filename = self.options.get("filename")
+        cmd = ["flux", "submit", "--cwd", stage]
 
-        # Task -> tasks
-        if "task" in js:
-            task = js.get("task")
-            del js["task"]
-            js["tasks"] = [task]
-            if "command" not in task:
-                task["command"] = ["/bin/bash", filename]
-
-        # It requires attributes, even if it's empty...
-        if "attributes" not in js:
-            js["attributes"] = {"system": {"duration": 3600, "cwd": stage}}
-
-        # Are we watching or waiting (note that watching implies waiting?
+        # TODO: add timeout from system section
         watch = self.options.get("watch") is True
-        wait = self.options.get("wait") is True or watch is True
-        flux_jobspec = flux.job.JobspecV1.from_yaml_stream(yaml.dump(js))
-        jobid = flux.job.submit(handle, flux_jobspec, waitable=wait)
-
-        # 👀️ 👀️ 👀️
         if watch:
-            watch_job(handle, jobid)
-        return jobid.f58plain
+            cmd.append("--watch")
+        if nodes:
+            cmd += ["-N", str(nodes)]
+        if tasks:
+            cmd += ["-n", str(tasks)]
+        cmd += ["/bin/bash", filename]
+        print("\n" + " ".join(cmd))
+
+        with utils.workdir(stage):
+            res = utils.run_command(cmd, check_output=True, stream=watch)
+
+        if not watch:
+            jobid = res["message"].strip()
+            return jobid
 
 
 # A transformer can register shared steps, or custom steps

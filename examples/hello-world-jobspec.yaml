@@ -18,11 +18,6 @@ task:
     filename: job.sh
     executable: true
 
-  # This is only provided as an example - in the devcontainer it's just one physicap machine!
-  # and filemap I think will likely not work
-  # - step: stage
-  #  filename: job.sh
-
   - step: submit
     filename: job.sh
 

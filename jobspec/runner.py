@@ -1,8 +1,10 @@
+import copy
 import os
 import sys
 
 # This imports the latest version
 import jobspec.core as js
+import jobspec.defaults as defaults
 import jobspec.utils as utils
 from jobspec.logger import LogColors
 
@@ -35,11 +37,31 @@ class TransformerBase:
         name = name or step.name
         cls.steps[name] = step
 
+    def update_settings(self, settings, typ, step):
+        """
+        Update settings, either set or unset
+        """
+        if "key" not in step or "value" not in step:
+            return
+        if not step["key"]:
+            return
+        # This is important for typos, etc.
+        if step["key"] not in defaults.valid_settings:
+            raise ValueError(f"{step['key']} is not a known setting.")
+        if typ == "set":
+            settings[step["key"]] = step["value"]
+        elif typ == "unset" and step["key"] in settings:
+            del settings[step["key"]]
+
     def parse(self, jobspec):
         """
-        parse validates transform logic and returns steps
+        parse validates transform logic and returns steps.
+
+        We also look for global variables for steps.
         """
         # We will return a listing of steps to complete
+        # Each step is provided all settings that are provided
+        # before it
         steps = []
 
         # Each filename directive must have a matching script
@@ -47,14 +69,26 @@ class TransformerBase:
         # but not for the time being
         task = jobspec.jobspec.get("task")
 
+        # Global set settings
+        settings = {"sharedfs": defaults.sharedfs}
+
         # Validate each step
         for i, step in enumerate(task.get("transform")):
             # The step must be known to the transformer
             name = step.get("step")
             if not name:
                 raise ValueError(f"Step in index {i} is missing a name")
+
+            # If it's a set or unset, add to settings
+            if name == "set" or name == "unset":
+                self.update_settings(settings, name, step)
+                continue
+
             if name not in self.steps:
                 raise ValueError(f"Step {name} is not known to transformer {self.name}")
+
+            # This ensures we get the exact state of settings at this level
+            step["settings"] = copy.deepcopy(settings)
 
             # Instantiate the new step (does extra validation), provided entire jobspec
             new_step = self.steps[name](jobspec.jobspec, step)
@@ -76,7 +110,8 @@ class TransformerBase:
 
         # Run each step to submit the job, and that's it.
         for step in steps:
-            self.run_step(step, stage)
+            step_stage = stage or step["settings"].get("stage")
+            self.run_step(step, step_stage)
 
     def run_step(self, step, stage):
         """

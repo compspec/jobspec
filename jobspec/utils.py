@@ -95,5 +95,8 @@ def run_command(cmd, stream=False, check_output=False, return_code=0):
 
     # Check the output and raise an error if not success
     if check_output and t[1] != return_code:
-        raise ValueError(output["message"].strip())
+        if output["message"]:
+            raise ValueError(output["message"].strip())
+        else:
+            raise ValueError(f"Failed execution, return code {t[1]}")
     return output

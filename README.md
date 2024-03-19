@@ -13,17 +13,33 @@ for a specific clusters scheduler. If you think it looks too simple then I'd say
 ## Usage
 
 A transformer provides one or more steps for the jobpsec to be transformed and understood for a particular
-execution environment. They include:
+execution environment.
+
+### Steps
+
+Steps include:
 
 | Name   | Description |
 |--------|-------------|
 | write  | write a file in the staging directory |
-| stage  | stage a file across nodes |
+| set    | a step to define a global setting  |
+| copy   | copy a file into staging (currently just local) |
 | submit | submit the job |
 | batch  | submit the job with a batch command (more common in HPC) |
 | auth   | authenticate with some service |
 
+Note that for the above, we assume a shared filesystem unless stage directs that this isn't the case.
 These are the basic steps that @vsoch needs now for scheduling experiments, and more can be added (or tweaked) if needed.
+
+### Settings
+
+Any "set" directive can be used to set a more global setting on the transform. For example:
+
+ - stage: defines the staging directory. If not set, will be a temporary directory that is created
+ - sharedfs: true or false to say that the filesystem is shared or not (defaults to false)
+
+For `sharedfs` it would be ideal to have a setting that is specific to the transformer, but unfortunately this could be true or false
+for flux, so it has to be set. But this might be an interesting compatibility thing to test.
 
 ### Example
 
@@ -125,9 +141,6 @@ transform:
     filename: install.sh
     executable: true
 
-  - step: stage
-    filename: install.sh
-
   - step: submit
     filename: install.sh
     wait: true
@@ -136,21 +149,36 @@ transform:
     filename: job.sh
     executable: true
 
-  - step: stage
-    filename: job.sh
-
   - step: submit
     filename: job.sh
     wait: true
 ```
 
-The above assumes we don't have a shared filesystem, and the receiving cluster has some cluster-specific method for staging or
-file mapping. It could be ssh, or a filemap, or something else. For an ephemeral cluster API, it might be an interaction with
-a storage provider, or just adding the file to an API call that will (in and of itself) do that creation, akin to a startup script for
-an instance in Terraform. It really doesn't matter - the user can expect the file to be written and shared across nodes.
-This is not intended to be a workflow or build tool - it simply is a transformational layer that a jobspec can provide
-to setup a specific cluster environment. It works with a jobspec in that you define your filenames (scripts) in the tasks->scripts
-directive. It also uses a plugin design, so a cluster or institution can write a custom transformer to install, and it will be discovered
+The above assumes we have a shared filesystem, and by not setting the stage manually:
+
+```yaml
+- step: set
+  key: stage
+  value: /tmp/path-for-workflow
+```
+
+We will use a custom one. If we didn't have a shared filesystem we would need to provide that detail. It's really akin
+to a subsystem detail, because a job that assumes a shared fs won't be compatible.
+
+```yaml
+- step: set
+  key: sharedfs
+  value: false
+```
+
+Whenever there is a copy (not shown) this assumes the receiving cluster has some cluster-specific method for copy or
+file mapping, even in the case without a shared filesystem. It could be ssh, or a filemap, or something else.
+For an ephemeral cluster API, it might be an interaction with a storage provider, or just adding the file to an API call that
+will (in and of itself) do that creation, akin to a startup script for an instance in Terraform. It really doesn't matter -
+the user can expect the file to be written and shared across nodes. This is not intended to be a workflow or build tool -
+it simply is a transformational layer that a jobspec can provide to setup a specific cluster environment. It works with a
+jobspec in that you define your filenames (scripts) in the tasks->scripts directive. It also uses a plugin design, so a
+cluster or institution can write a custom transformer to install, and it will be discovered
 by name. This is intended to work with the prototype [rainbow](https://github.com/converged-computing/rainbow) scheduler.
 Jobspec is an entity of [flux-framework](https://flux-framework.org).
 

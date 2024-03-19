@@ -18,13 +18,9 @@ task:
     filename: job.sh
     executable: true
 
-  # This is only provided as an example - in the devcontainer it's just one physicap machine!
-  #- step: stage
-  #  filename: install.sh
-
   - step: submit
     filename: job.sh
-    wait: true
+    watch: true
 
   scripts: 
     - name: job.sh

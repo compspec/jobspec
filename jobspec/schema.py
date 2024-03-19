@@ -54,9 +54,7 @@ jobspec_v2 = {
         },
     },
     "type": "object",
-    # NOTE that I removed attributes, I don't see why they need to be required
     "required": ["version", "resources", "task"],
-    # "required": ["version", "resources", "attributes", "tasks"],
     "properties": {
         "version": {
             "description": "the jobspec version",
@@ -94,54 +92,50 @@ jobspec_v2 = {
         "task": {
             "description": "task configuration",
             "type": "object",
-            "maxItems": 1,
-            "items": {
-                "type": "object",
-                "required": ["slot", "count", "command"],
-                "properties": {
-                    "command": {
-                        "type": ["string", "array"],
-                        "minItems": 1,
-                        "items": {"type": "string"},
-                    },
-                    # This could be embedded as a yaml file, and then
-                    # executed with jobspec <yaml> if it's not wanted here
-                    "transform": {
-                        "type": ["array"],
-                        "minItems": 1,
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "step": {"type": "string"},
-                            },
-                            "required": ["step"],
-                        },
-                    },
-                    # RESOURCES AND SCRIPTS ARE EXPERIMENTAL
-                    "resources": {"type": "object"},
-                    "scripts": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "required": ["name", "content"],
-                            "properties": {
-                                "name": {"type": "string"},
-                                "content": {"type": "string"},
-                            },
-                        },
-                    },
-                    "slot": {"type": "string"},
-                    "count": {
+            "required": ["slot", "count"],
+            "properties": {
+                "command": {
+                    "type": ["string", "array"],
+                    "minItems": 1,
+                    "items": {"type": "string"},
+                },
+                # This could be embedded as a yaml file, and then
+                # executed with jobspec <yaml> if it's not wanted here
+                "transform": {
+                    "type": ["array"],
+                    "minItems": 1,
+                    "items": {
                         "type": "object",
-                        "additionalProperties": False,
                         "properties": {
-                            "per_slot": {"type": "integer", "minimum": 1},
-                            "total": {"type": "integer", "minimum": 1},
+                            "step": {"type": "string"},
+                        },
+                        "required": ["step"],
+                    },
+                },
+                # RESOURCES AND SCRIPTS ARE EXPERIMENTAL
+                "resources": {"type": "object"},
+                "scripts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["name", "content"],
+                        "properties": {
+                            "name": {"type": "string"},
+                            "content": {"type": "string"},
                         },
                     },
                 },
-                "additionalProperties": False,
+                "slot": {"type": "string"},
+                "count": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "per_slot": {"type": "integer", "minimum": 1},
+                        "total": {"type": "integer", "minimum": 1},
+                    },
+                },
             },
+            "additionalProperties": False,
         },
     },
 }

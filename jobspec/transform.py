@@ -85,8 +85,8 @@ class TransformerBase:
         prefix = f"step {step.name}".ljust(15)
         print(f"=> {LogColors.OKCYAN}{prefix}{LogColors.ENDC}", end="")
         try:
-            step.run(stage)
-            print(f"{LogColors.OKGREEN} OK{LogColors.ENDC}")
+            out = (step.run(stage) or "").ljust(25)
+            print(f"{LogColors.OKBLUE}{out}{LogColors.ENDC} {LogColors.OKGREEN}OK{LogColors.ENDC}")
         except Exception as e:
             print(f"\n{LogColors.RED}{str(e)}{LogColors.ENDC}")
             sys.exit()

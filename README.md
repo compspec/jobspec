@@ -25,9 +25,11 @@ execution environment. They include:
 
 These are the basic steps that @vsoch needs now for scheduling experiments, and more can be added (or tweaked) if needed.
 
-### Steps
-
 ### Example
+
+This example will assume receiving a Jobspec on a flux cluster.
+
+#### 1. Start Flux
 
 Start up the development environment to find yourself in a container with flux. Start a test instance:
 
@@ -53,6 +55,8 @@ Ensure you have jobspec installed! Yes, we are vscode, installing to the contain
 sudo pip install -e .
 ```
 
+#### 2. Command Line Examples
+
 We are going to run the [examples/hello-world-jobspec.yaml](examples/hello-world-jobspec.yaml). This setup is way overly
 complex for this because we don't actually need to do any staging or special work, but it's an example, so intended to be so.
 Also note that the design of this file is subject to change. For example, we don't have to include the transform directly in the
@@ -77,6 +81,25 @@ jobspec run -t flux ./examples/hello-world-wait-jobspec.yaml
 jobspec run --transformer flux ./examples/hello-world-wait-jobspec.yaml
 ```
 
+#### 3. Python Examples
+
+It could also be the case that you want something running inside a lead broker instance to receive Jobspecs incrementally and then
+run them. This Python example can help with that by showing how to accomplish the same, but from within Python.
+
+```bash
+python3 ./examples/flux/receive-job.py
+```
+```console
+$ python3 examples/flux/receive-job.py
+=> step write                               OK
+=> step submit    f7aChzM3u                 OK
+=> step write                               OK
+=> step submit    f7aDYuwMH                 OK
+```
+
+Just for fun (posterity) I briefly tried having emoji here:
+
+![img/emoji.png](img/emoji.png)
 
 ### Details
 

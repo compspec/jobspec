@@ -35,3 +35,4 @@ jobs:
           which jobspec
           flux start jobspec run ./examples/hello-world-jobspec.yaml
           flux start jobspec run ./examples/hello-world-batch.yaml
+          flux start python3 ./examples/flux/receive-job.py

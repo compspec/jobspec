@@ -28,7 +28,12 @@ jobspec_v2 = {
                     "type": "array",
                     "minItems": 1,
                     "maxItems": 1,
-                    "items": {"oneOf": [{"$ref": "#/definitions/slot_vertex"}]},
+                    "items": {
+                        "oneOf": [
+                            {"$ref": "#/definitions/slot_vertex"},
+                            {"$ref": "#/definitions/intranode_resource_vertex"},
+                        ]
+                    },
                 },
             },
             "additionalProperties": False,
@@ -92,7 +97,10 @@ jobspec_v2 = {
         "task": {
             "description": "task configuration",
             "type": "object",
-            "required": ["slot", "count"],
+            # I changed this so if no slot is defined, it's
+            # implied to be at the top level (the node) which isn't allowed
+            # by this super strict jobspec
+            "required": ["count"],
             "properties": {
                 "command": {
                     "type": ["string", "array"],

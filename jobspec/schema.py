@@ -79,7 +79,7 @@ jobspec_v2 = {
             },
         },
         "attributes": {
-            "description": "system and user attributes",
+            "description": "system, parameter, and user attributes",
             "type": ["object", "null"],
             "properties": {
                 "system": {
@@ -90,8 +90,10 @@ jobspec_v2 = {
                         "environment": {"type": "object"},
                     },
                 },
+                "parameter": {"type": "object"},
                 "user": {"type": "object"},
             },
+            "additionalProperties": False,
         },
         "task": {
             "description": "task configuration",

@@ -92,7 +92,6 @@ jobspec_v2 = {
                 },
                 "user": {"type": "object"},
             },
-            "additionalProperties": False,
         },
         "task": {
             "description": "task configuration",

@@ -1,11 +1,7 @@
 #!/usr/bin/env python
 
-import json
 
-import jobspec.utils as utils
-
-
-def main(args, extra):
+def main(args, _):
     """
     Run an extraction. This can be converted to a proper function
     if needed.

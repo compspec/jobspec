@@ -3,16 +3,10 @@
 # they can import it
 import jobspec.schema as schemas
 
+from .core import Attributes
 from .core import Jobspec as JobspecBase
+from .core import Requires, Resources
 
 
 class Jobspec(JobspecBase):
-    """
-    Use experimental design as default
-    """
-
-    schema = schemas.jobspec_v2
-
-
-class JobspecV1(JobspecBase):
-    schema = schemas.jobspec_v1
+    schema = schemas.jobspec_nextgen

@@ -1,16 +1,8 @@
-import argparse
 import copy
-import json
 import logging
-import os
-import shlex
-import subprocess
-import time
 import uuid
 
-import yaml
-
-import jobspec.steps as steps
+import jobspec.core as js
 import jobspec.utils as utils
 from jobspec.runner import TransformerBase
 from jobspec.steps.base import StepBase
@@ -37,6 +29,68 @@ class Transformer(TransformerBase):
 
         handle = flux.Flux()
         super().__init__(*args, **kwargs)
+
+    def validate_resource_subset(self, parent_resources, child_resources):
+        """
+        Validate the resource subset
+        """
+        print("CHECK SUBSET RESOURCES")
+        import IPython
+
+        IPython.embed()
+
+    def parse(self, jobspec):
+        """
+        Parse the jobspec into tasks for flux.
+        """
+        # We will return a listing of steps to complete
+        steps = []
+
+        # Start with global resources, attributes, and requires
+        requires = jobspec.get("requires", {})
+        resources = jobspec.get("resources", {})
+        attributes = jobspec.get("attributes", {})
+
+        # Batch is true if we have global resources
+        is_batch = True if resources else False
+
+        # Write a task (flux submit) for each script
+        for i, task in enumerate(jobspec.get("tasks", [])):
+            task_resources = task.get("resources", {})
+
+            # Create a name based on the index or the task name
+            name = task.get("name") or f"task-{i}"
+
+            # If the task has resources, must be <= global
+            if task_resources and resources:
+                self.validate_resource_subset(resources, task_resources)
+
+            # The slot is optional and drives where the match is targeting
+            slot = task.get("slot")
+
+            # The resources, attributes, and requires can be defined at multiple levels
+            #   Resources are OR, with task-level taking precedence
+            #   Attributes and requires start with global and are updated with local
+            task_resources = js.Resources(task_resources or resources, slot=slot)
+
+            # Derive and update task attributes, if provided
+            task_attributes = js.Attributes(attributes)
+            task_attributes.update(task.get("attributes"))
+
+            # Same for requires. This might eventually include retrieval of
+            # artifact metadata first.
+            task_requires = js.Requires(attributes)
+            task_requires.update(task.get("requires"))
+
+            new_step = self.steps["submit"](jobspec, resources=task_resources, name=name)
+            steps.append(new_step)
+
+        # If we have a batch job, these steps are inherited by it
+        if is_batch:
+            name = jobspec.get("name")
+            batch_step = self.steps["batch"](jobspec, resources=resources, name=name, steps=steps)
+            steps = [batch_step]
+        return steps
 
 
 # Custom Flux steps - just write and register!
@@ -96,10 +150,15 @@ class stage(StepBase):
 class batch(StepBase):
     name = "batch"
 
-    def run(self, stage, *args, **kwargs):
+    def run(self, *args, **kwargs):
         """
         Run the batch step
         """
+        print("RUN FLUX BATCH")
+        import IPython
+
+        IPython.embed()
+
         slot = self.flatten_slot()
         nodes = slot.get("node")
         tasks = slot.get("core")
@@ -124,20 +183,17 @@ class batch(StepBase):
 class submit(StepBase):
     name = "submit"
 
-    def validate(self):
-        """
-        Validate a submit step.
-
-        This largely is done with the schema.json
-        """
-        assert "resources" in self.jobspec
-
-    def run(self, stage, *args, **kwargs):
+    def run(self, *args, **kwargs):
         """
         Run the submit step.
 
         The python bindings are giving me weird errors.
         """
+        print("RUN FLUX SUBMIT")
+        import IPython
+
+        IPython.embed()
+
         slot = self.flatten_slot()
         nodes = slot.get("node")
         tasks = slot.get("core")
@@ -165,7 +221,6 @@ class submit(StepBase):
 
 
 # A transformer can register shared steps, or custom steps
-Transformer.register_step(steps.WriterStep)
 Transformer.register_step(batch)
 Transformer.register_step(submit)
 Transformer.register_step(stage)

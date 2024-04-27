@@ -47,15 +47,93 @@ tasks:
         ior -b 10g -O summaryFormat=json
 ```
 
-The above assumes a cluster with a shared filesystem, where a spack install is already on the user's default path. A few notes:
+The above assumes a cluster with a shared filesystem, where a spack install is already on the user's default path. Note that the order (and ability to read from top to bottom without needing to jump around) is intentional.
 
-- **tasks** are the main unit that we care about
-- **order** It's human readable. You can read from top to bottom and see what happens.
-- **requires**: Requirements for a job are a reference to compatibility metadata. This could be on the global level (applied to all tasks) or for a specific task. Specific task definitions override the global level.
-- **resources** Can be defined on the level of a task, or at the global level (to indicate batch work). If defined at the global level, the subset of resources under tasks must be <= the superset.
-- **name** under each task is only required if there is a depends_on specification (or for a human readable thing). Label is removed
-- **slot** is kept for now because it has utility, but it needs to be clearly defined what it means.
+## Name
 
+If you want to provide a name for your entire job, which might be appropriate for a batch job, you can define that at the top level:
+
+```yaml
+version: 1
+name: ml-workload
+```
+
+While this is not required, it's recommended for general good practice.
+
+## Tasks
+
+The basic unit of work is the task. Each task MUST define a command. The command can be a list of strings, or a single string. The example above shows how to put custom script logic into a command by way of "bash -c" followed by a pipe and larger block.
+
+- **name** under each task is only required if there is some reference to the task (e.g.,) `depends_on` would say that the task in question depends on another named task).
+- **slot** indicates the level of resources in the main cluster (or containment) graph where we are doing an assessment for matching.
+
+Here is another simple example of having two tasks, the first which writes a script and makes it executable, and the second which waits for it and then runs it.
+Let's say (for whatever reason) we want to write our main submission file on the fly. We might do the following.
+
+```yaml
+tasks:
+- name: setup
+  command:
+    - bash
+    - -c
+    - |
+      cat << EOF > job.sh
+      #!/bin/bash
+      echo hello from my job
+      EOF
+      chmod +x ./job.sh
+
+- depends_on: ["setup"]
+  command: ["/bin/bash", "job.sh"]
+```
+
+This above assumes a shared filesystem.
+
+### Steps
+
+Different workload managers have functionality for staging files, or similar tasks. We will try to define these as abstractions called "steps" where common needs (e.g., paths) are defined as variables, and each workload manager has a transformer that takes the variables and writes to the correct logic. A good example with flux is `flux archive`, which previously was called `flux filemap`. We might generalize this to the idea of staging files. We currently support the following steps:
+
+| Name   | Description |
+|--------|-------------|
+| stage  | stage files or directories |
+
+We hope to add these minimally, and only choosing ones that might be supported across environments or workload managers.
+
+#### Stage
+
+By default, the JobSpec doesn't know anything about having a shared filesystem or not. In the case of not, you might need to stage files, or ensure they are present across nodes before running any task. Here is what a staging task for a directory might look like:
+
+```yaml
+tasks:
+- name: setup
+  steps:
+    - name: stage
+      path: /tmp/path-for-workflow
+```
+
+or a file:
+
+```yaml
+- name: setup
+  steps:
+    - name: stage
+      path: /home/dinosaur/kubeconfig
+```
+
+
+If we were to write this out with a task (with flux commands) it might look like this:
+
+```yaml
+- name: root
+  level: 1
+  command:
+    - /bin/bash
+    - -c
+    - flux archive create -n kubeconfig -C ./home/dinosaur kubeconfig
+    - flux -r all -x 0 flux exec flux archive get -n kubeconfig -C ./home/dinosaur
+```
+
+Instead of doing the above, we use the abstraction, and the underlying transformer does the translation. This means that different cluster transformers would parse the jobspec, and convert that into whatever their filemap/archive command is. We would likely have similar, abstract workload manager steps.
 
 ## Resources
 
@@ -83,6 +161,8 @@ resources:
 
 tasks:
 - command: ["echo", "hello", "world"]
+
+  # Run this task 4 times
   replicas: 4
   resources:
   - count: 1
@@ -115,7 +195,17 @@ tasks:
 - command: ["spack", "install", "go"]
 ```
 
-## Duration
+## Attributes
+
+Attributes work the same way as resources. They can be defined either on the global (top) level to be applied to all tasks, or on the level of an individual task to over-ride any equivalent global setting.
+Attributes currently include:
+
+- [Duration](#duration)
+- [Environment](#environment)
+- [Current working directory](#current-working-directory)
+
+
+### Duration
 
 The duration is the maximum runtime for your batch job or set of individual tasks. The following applies:
 
@@ -127,7 +217,8 @@ Here is an example of running one task with a duration of 5 minutes (300 seconds
 
 ```yaml
 version: 1
-duration: 300s
+attributes:
+  duration: 300s
 
 tasks:
 - name: build
@@ -141,28 +232,73 @@ version: 1
 
 tasks:
 - command: ["spack", "install", "singularity"]
-  duration: 900s
+  attributes:
+    duration: 900s
 - name: build
   command: ["spack", "install", "zlib"]
-  duration: 300s
+  attributes:
+    duration: 300s
 ```
 
 And finally, the same two tasks, but put under a global duration.
 
 ```yaml
 version: 1
-duration: 2000s
+duration:
+  duration: 2000s
 
 tasks:
 - command: ["spack", "install", "singularity"]
-  duration: 900s
+  attributes:
+    duration: 900s
 - name: build
   command: ["spack", "install", "zlib"]
-  duration: 300s
+  attributes:
+    duration: 300s
 ```
 
-Note that a global duration set in absence of task-level durations will not influence the task level durations unless it is under the default. Arguably, a global duration is best used when there is complex logic in the script that deems the total runtime of the individual tasks unknown, and a global duration is more sane to set.
+Arguably, a global duration is best used when there is complex logic in the script that deems the total runtime of the individual tasks unknown, and a global duration is more sane to set.
 
+### Environment
+
+Environment is a set of key value pairs that are also under attributes. The same rules apply with respect to global (top) level and within-task definitions. This example shows a global environment variable that is over-ridden by a task-level definition.
+
+
+```yaml
+version: 1
+attributes:
+  environment:
+    LD_LIBRARY_PATH: /usr/local/lib:/usr/local/lib64
+tasks:
+- name: build
+  command: ["spack", "install", "pennant"]
+- command: ["pennant", "/opt/pennant/test/params.pnt"]
+  depends_on: ["build"]
+  attributes:
+    envirionment:
+      LD_LIBRARY_PATH: /usr/local/cuda/lib
+```
+
+Environment variables are always exported at the onset of the task or batch job.
+
+**Question**: should these be blocks of stings at the choice of the user for definition / export?
+
+### Current Working Directory
+
+The current working directory is where you expect the job to run. It defaults to your home on the cluster, or in the context of a container environment, where you would expect the WORKDIR to be.
+
+```yaml
+version: 1
+tasks:
+- name: build
+  command: ["spack", "install", "pennant"]
+- command: ["pennant", "params.pnt"]
+  depends_on: ["build"]
+  attributes:
+    cwd: /opt/pennant/test/
+```
+
+The job above shows the same running logic with pennant, but we are sitting in the directory with the parameter script instead. The same rules apply for the global and task-level definitions under "attributes."
 
 ## Requires
 
@@ -173,6 +309,7 @@ The "requires" section includes compatibility metadata or key value pairs that a
 - Any task-level "requires" over-rides global variables that with the same keys.
 
 The example at the top shows global requires paired with task-level requires.
+
 
 ## Support for Services
 
@@ -279,28 +416,9 @@ tasks:
   command: ["munch", "munch", "munch']
 ```
 
-## Workload Manager Tasks
+### Not Accounted for Yet
 
-Different workload managers have functionality for staging files, or similar tasks. We will try to define these as abstractions called "steps" where common needs (e.g., paths) are defined as variables, and each workload manager has a transformer that takes the variables and writes to the correct logic. A good example with flux is `flux archive`, which previously was called `flux filemap`. We might generalize this to the idea of staging files:
+Additional properties and attributes we might want to consider (only when needed)
 
-```yaml
-- name: root
-  level: 1
-  steps:
-    - name: stage
-      path: /home/dinosaur/kubeconfig
-```
-
-If we were to write this out with a task (with flux commands) it might look like this:
-
-```yaml
-- name: root
-  level: 1
-  command:
-    - /bin/bash
-    - -c
-    - flux archive create -n kubeconfig -C ./home/dinosaur kubeconfig
-    - flux -r all -x 0 flux exec flux archive get -n kubeconfig -C ./home/dinosaur
-```
-
-Instead of doing the above, we use the abstraction, and the underlying transformer does the translation. This means that different cluster transformers would parse the jobspec, and convert that into whatever their filemap/archive command is. We would likely have similar, abstract workload manager steps.
+- user: variables specific to the user
+- parameters: task parameters or state that inform resource selection

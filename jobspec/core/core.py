@@ -1,79 +1,102 @@
-# Note that jsonschema used to be a part of flux core but was dropped
-# https://github.com/flux-framework/flux-core/pull/5678/files
-
-import json
-import os
-
 import jsonschema
-import yaml
 
 import jobspec.schema as schema
-import jobspec.utils as utils
+
+from .base import ResourceBase
+from .resources import find_resources
 
 
-class Jobspec:
-    def __init__(self, filename, validate=True, schema=schema.jobspec_v2):
+class Jobspec(ResourceBase):
+    def __init__(self, filename, validate=True, schema=schema.jobspec_nextgen):
         """
-        Load in and validate a Flux Jobspec
+        Load in and validate a Jobspec
         """
         # This should typically be loaded from jobspec.core
         if not hasattr(self, "schema") or not self.schema:
             self.schema = schema
         self.filename = filename
-        self.jobspec = None
+        self.data = None
         self.load(filename)
         if validate:
             self.validate()
-
-    def to_str(self):
-        """
-        Convert to string, which is needed for the submit.
-        """
-        return json.dumps(self.jobspec)
-
-    def to_yaml(self):
-        """
-        Dump the jobspec to yaml string
-        """
-        return yaml.dump(self.jobspec)
-
-    @property
-    def name(self):
-        try:
-            return self.jobspec.get("tasks", {})[0]["command"][0]
-        except Exception:
-            return "app"
-
-    def load(self, filename):
-        """
-        Load the jobspec
-        """
-        # Case 1: given a raw filename
-        if isinstance(filename, str) and os.path.exists(filename):
-            self.filename = os.path.abspath(filename)
-
-            try:
-                self.jobspec = utils.read_json(self.filename)
-            except:
-                self.jobspec = utils.read_yaml(self.filename)
-
-        # Case 2: jobspec as dict (that we just want to validate)
-        elif isinstance(filename, dict):
-            self.jobspec = filename
-        # Case 3: jobspec as string
-        else:
-            self.jobspec = json.loads(filename)
-
-        # Case 4: wtf are you giving me? :X
-        if not self.jobspec:
-            raise ValueError("Unrecognized input format for jobspec.")
 
     def validate(self):
         """
         Validate the jsonschema
         """
-        jsonschema.validate(self.jobspec, self.schema)
-        # Require at least one of command, batch, or script
-        for task in self.jobspec.get("tasks", []):
-            if "command" not in task and "batch" not in task and "script" not in task:
-                raise ValueError("Jobspec is not valid, task is missing a command|script|batch")
+        jsonschema.validate(self.data, self.schema)
+
+        # Require at least one of command or steps
+        for task in self.data.get("tasks", []):
+            if "command" not in task and "steps" not in task:
+                raise ValueError("Jobspec is not valid, each task must have a command or steps")
+
+
+class Resources(ResourceBase):
+    def __init__(self, data, slot=None):
+        """
+        Interact with loaded resources.
+        """
+        self.data = data
+        self.slot = slot
+
+    def flatten_slot(self, slot=None):
+        """
+        Find the task slot, flatten it, and return
+        """
+        slot = slot or self.slot
+
+        # Traverse each section. There is usually only one I guess
+        for resource in self.data or []:
+            flat = {}
+            if find_resources(flat, resource, slot):
+                break
+
+        return flat
+
+
+class Attributes(ResourceBase):
+    """
+    Job attributes, not formally defined yet.
+    """
+
+    pass
+
+
+class Requires(ResourceBase):
+    """
+    Requires are nested groups
+    """
+
+    def update(self, requires):
+        """
+        Update specific groups. This is assumed
+        at the level of the attribute, not the group.
+        E.g., this at the global level:
+
+        requires:
+          io:
+            fieldA: valueA
+            fieldB: valueB
+
+        Updated with this:
+        requires:
+          io:
+            fieldB: valueC
+
+        Results in this:
+        requires:
+          io:
+            fieldA: valueA
+            fieldB: valueC
+        """
+        if not requires:
+            return
+        for group, fields in requires.items():
+            # If we don't have the group at all, we can add all and continue!
+            if group not in self.data:
+                self.data[group] = fields
+                continue
+
+            # If we have the group, update on the level of fields
+            self.data[group].update(fields)

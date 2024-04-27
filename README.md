@@ -13,6 +13,7 @@ to derive some variant between that and something more. It is JobSpec... the nex
 
 ⭐️ [Read the specification](spec.md) ⭐️
 
+
 ## Usage
 
 A JobSpec consists of one or more tasks that have dependencies. This level of dependency is what can be represented in a scheduler.
@@ -54,11 +55,8 @@ jobspec - it can be a file that the jobspec writes, and then the command is issu
 it there for the time being, mostly because it looks nicer. I'm sure someone will disagree with me about that.
 
 ```bash
-# Example showing without watching (waiting) and showing output
+# Submit a basic set of jobs with dependencies
 jobspec run ./examples/hello-world-jobspec.yaml
-
-# Example that shows waiting for output
-jobspec run ./examples/hello-world-wait-jobspec.yaml
 
 # Example with batch using flux
 jobspec run ./examples/hello-world-batch.yaml
@@ -91,91 +89,21 @@ Just for fun (posterity) I briefly tried having emoji here:
 
 ![img/emoji.png](img/emoji.png)
 
-### Details
-
-As an example, although you *could* submit a job with a command ready to go - assuming your cluster has the
-software needed and files, and you just want to run it, assuming submission to a cluster you haven't
-setup on, you might need the following logic:
-
-1. Write a script to file that is intended to install something.
-2. Stage this file across nodes.
-3. Submit the script to all nodes to do the install.
-4. Write a script to file for your actual job.
-5. Again, stage this file across nodes (assuming no share filesystem)
-6. Submit the job, either as a submit or batch directive to a workload manager.
-
-The way that you do this with every workload manager (or cluster, more generally) is going to vary
-quite a bit. However, with a transformation - a mapping of abstract steps to a specific cluster
-workload manager, you can write those steps out very simply:
-
-```yaml
-transform:
-
-  - step: write
-    filename: install.sh
-    executable: true
-
-  - step: submit
-    filename: install.sh
-    wait: true
-
-  - step: write
-    filename: job.sh
-    executable: true
-
-  - step: submit
-    filename: job.sh
-    wait: true
-```
-
-The above assumes we have a shared filesystem, and by not setting the stage manually:
-
-```yaml
-- step: set
-  key: stage
-  value: /tmp/path-for-workflow
-```
-
-We will use a custom one. If we didn't have a shared filesystem we would need to provide that detail. It's really akin
-to a subsystem detail, because a job that assumes a shared fs won't be compatible.
-
-```yaml
-- step: set
-  key: sharedfs
-  value: false
-```
-
-Whenever there is a copy (not shown) this assumes the receiving cluster has some cluster-specific method for copy or
-file mapping, even in the case without a shared filesystem. It could be ssh, or a filemap, or something else.
-For an ephemeral cluster API, it might be an interaction with a storage provider, or just adding the file to an API call that
-will (in and of itself) do that creation, akin to a startup script for an instance in Terraform. It really doesn't matter -
-the user can expect the file to be written and shared across nodes. This is not intended to be a workflow or build tool -
-it simply is a transformational layer that a jobspec can provide to setup a specific cluster environment. It works with a
-jobspec in that you define your filenames (scripts) in the tasks->scripts directive. It also uses a plugin design, so a
-cluster or institution can write a custom transformer to install, and it will be discovered
-by name. This is intended to work with the prototype [rainbow](https://github.com/converged-computing/rainbow) scheduler.
-Jobspec is an entity of [flux-framework](https://flux-framework.org).
 
 ### Frequently Asked Questions
 
-#### Why not rely on Flux internals?
+#### Is this a Flux jobspec?
 
-If we lived in a universe of just flux, sure we wouldn't need this. But the world is more than Flux, and we want to extend our Jobspec to that world.
-So we want a Jobspec to be able to handle a transformation of some logic (the above) into an execution that might not involve flux at all. It could be another workload manager (e.g., Slurm),
-Kubernetes, or it could be a service that submits to some cloud batch API.
+Despite the shared name, this is not a Flux jobspec. Type `man bash` to see that the term "jobspec" predates flux. If we lived in a universe of just Flux, sure we wouldn't need this. But the world is more than Flux, and we want to extend our Jobspec to that - providing an abstraction that works with Flux, but also works with other workload managers and compute environments and application programming interfaces.
 
-#### What are all the steps allowed?
+#### What are steps?
 
-They are currently shown in the example above, and better documentation will be written. Arguably, any transformation backend does not
-need to support every kind of step, however if you provide a Jobspec to a transformer with a step not supported, you'll get an error.
+A step is a custom setup or staging command that might be allowed for a specific environment. For example, workload managers that know how to map or stage files can use the "stage" step. General steps to write scripts can arguably used anywhere with some form of filesystem, shared or not. The steps that are allowed for a task are shown in the [spec](spec.md). At the onset we will make an effort to only add steps that can be supported across transformer types.
 
 #### Where are the different transformers defined?
 
 We currently have our primary (core) transformers here in [jobspec/transformer](jobspec/transformer), however a registry that discovers jobspec-* named Python modules can allow an out of tree install and use of a transfomrmer. This use case is anticipating clusters with some custom or private logic that cannot be shared in a public GitHub repository.
 
-#### How do you know this is a good idea?
-
-I don't, or won't until I try it for experiments. I decided to try something like it after several days of preparing for experiments,and realizing that this transformation layer was entirely missing.
 
 ### Means of Interaction
 
@@ -183,7 +111,7 @@ There are several likely means of interacting with this library:
 
 - As a service that runs at some frequency to receive jobs (written as a loop in Python in some context)
 - As a cron job that does the same (an entry to crontab to run "jobspec" at some frequency)
-- As a one off run (a single run of the above)
+- As a one off run (an example above)
 
 For the example usage here, and since the project I am working on is concerned with Flux, we will start with the simplest case - a client that is running inside a flux instance (meaning it can import flux) that reads in a jobspec with a section that defines a set of transforms, and then issues the commands to stage the setup and use flux to run the work defined by the jobspec.
 
@@ -217,10 +145,9 @@ just register the empty step with the name you want to skip. As an example, let'
 ```python
 import jobspec.steps as steps
 
-# This will not fail validation that the step is unknowb, but skip it
+# This will not fail validation that the step is unknown, but skip it
 Transformer.register_step(steps.EmptyStep, name="stage")
 ```
-
 
 ## License
 

@@ -31,15 +31,18 @@ class WriterStep(StepBase):
                 f"Filename {filename} is defined for a {self.name} step but not in task scripts"
             )
 
-    def run(self, stage, *args, **kwargs):
+    def run(self, *args, **kwargs):
         """
-        write some content to a filename
+        write some content to a filename.
+
+        This is currently not used, as we can represent the same logic in a task.
 
         step: write
         filename: install.sh
         executable: true
         """
         filename = self.options.get("filename")
+        stage = self.options.get("stage")
         fullpath = os.path.join(stage, filename)
         utils.write_file(self.scripts[filename]["content"], fullpath)
 

@@ -8,42 +8,16 @@
 
 This library includes a cluster agnostic language to setup a job (one unit of work in a jobspec).
 It is a transformational layer, or a simple language that converts steps needed to prepare a job
-for a specific clusters scheduler. If you think it looks too simple then I'd say it's a success,
+for a specific clusters scheduler. We are currently prototyping off of the Flux JobSpec, and intent
+to derive some variant between that and something more. It is JobSpec... the next generation! 🚀️
+
+⭐️ [Read the specification](spec.md) ⭐️
 
 ## Usage
 
-A transformer provides one or more steps for the jobpsec to be transformed and understood for a particular
-execution environment.
-
-### Steps
-
-Steps include:
-
-| Name   | Description |
-|--------|-------------|
-| write  | write a file in the staging directory |
-| set    | a step to define a global setting  |
-| copy   | copy a file into staging (currently just local) |
-| submit | submit the job |
-| batch  | submit the job with a batch command (more common in HPC) |
-| auth   | authenticate with some service |
-
-Note that for the above, we assume a shared filesystem unless stage directs that this isn't the case.
-These are the basic steps that @vsoch needs now for scheduling experiments, and more can be added (or tweaked) if needed.
-
-### Settings
-
-Any "set" directive can be used to set a more global setting on the transform. For example:
-
- - stage: defines the staging directory. If not set, will be a temporary directory that is created
- - sharedfs: true or false to say that the filesystem is shared or not (defaults to false)
-
-For `sharedfs` it would be ideal to have a setting that is specific to the transformer, but unfortunately this could be true or false
-for flux, so it has to be set. But this might be an interesting compatibility thing to test.
-
-### Example
-
-This example will assume receiving a Jobspec on a flux cluster.
+A JobSpec consists of one or more tasks that have dependencies. This level of dependency is what can be represented in a scheduler.
+The JobSpec library here reads in the JobSpec and can map that into specific cluster submit commands.
+Here is an example that assumes receiving a Jobspec on a flux cluster.
 
 #### 1. Start Flux
 

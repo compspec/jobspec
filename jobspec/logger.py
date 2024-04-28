@@ -167,7 +167,6 @@ def setup_logger(
     stdout=False,
     debug=False,
     use_threads=False,
-    wms_monitor=None,
 ):
     # console output only if no custom logger was specified
     stream_handler = ColorizingStreamHandler(

@@ -47,11 +47,8 @@ class Resources(ResourceBase):
         slot = slot or self.slot
 
         # Traverse each section. There is usually only one I guess
-        for resource in self.data or []:
-            flat = {}
-            if find_resources(flat, resource, slot):
-                break
-
+        flat = {}
+        find_resources(flat, self.data, slot)
         return flat
 
 

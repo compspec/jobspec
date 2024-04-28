@@ -57,16 +57,28 @@ it there for the time being, mostly because it looks nicer. I'm sure someone wil
 ```bash
 # Submit a basic set of jobs with dependencies
 jobspec run ./examples/hello-world-jobspec.yaml
+```
+```console
+=> flux submit    ƒDjkLvNF9                 OK
+=> flux submit    ƒDjzAyfhh                 OK
+```
 
-# Example with batch using flux
-jobspec run ./examples/hello-world-batch.yaml
+Add debug to see commands submit
+```bash
+jobspec --debug run ./examples/hello-world-jobspec.yaml
+```
+```console
+=> flux submit    ƒJYffwYkP OK
+   flux submit --job-name task-1 -N 1 bash -c echo Starting task 1; sleep 3; echo Finishing task 1
+=> flux submit    ƒJYw8t4F1 OK
+   flux submit --job-name task-2 -N 1 bash -c echo Starting task 2; sleep 3; echo Finishing task 2
 ```
 
 Note that the default transformer is flux, so the above are equivalent to:
 
 ```bash
-jobspec run -t flux ./examples/hello-world-wait-jobspec.yaml
-jobspec run --transformer flux ./examples/hello-world-wait-jobspec.yaml
+jobspec run -t flux ./examples/hello-world-jobspec.yaml
+jobspec run --transformer flux ./examples/hello-world-jobspec.yaml
 ```
 
 #### 3. Python Examples
@@ -78,11 +90,8 @@ run them. This Python example can help with that by showing how to accomplish th
 python3 ./examples/flux/receive-job.py
 ```
 ```console
-$ python3 examples/flux/receive-job.py
-=> step write                               OK
-=> step submit    f7aChzM3u                 OK
-=> step write                               OK
-=> step submit    f7aDYuwMH                 OK
+=> flux submit    ƒKCJG2ESB OK
+=> flux submit    ƒKCa5iZsd OK
 ```
 
 Just for fun (posterity) I briefly tried having emoji here:

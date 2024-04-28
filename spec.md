@@ -14,7 +14,7 @@ tasks:
 - name: build
   command: ["spack", "install", "ior"]
   resources:
-  - count: 4
+    count: 4
     type: node
     with:
      - count: 1
@@ -26,7 +26,7 @@ tasks:
 - name: ior
   depends_on: ["build"]
   resources:
-  - count: 4
+    count: 4
     type: node
     with:
     - count: 1
@@ -150,14 +150,14 @@ requires:
     cpu.target: amd64
 
 resources:
-- count: 4
+  count: 4
   type: node
   with:
    - count: 1
      type: slot
-       with:
-       - count: 4
-         type: core
+      with:
+      - count: 4
+        type: core
 
 tasks:
 - command: ["echo", "hello", "world"]
@@ -165,7 +165,7 @@ tasks:
   # Run this task 4 times
   replicas: 4
   resources:
-  - count: 1
+    count: 1
     type: node
 ```
 
@@ -175,6 +175,8 @@ Both of the above can have any dependency relationship. Here is an example of ru
 
 **Questions**
  - Do we have a default resources? E.g., one node.
+
+Note that I've made resources an object instead of list, which I'm doing until there is good reason to not do that. The list adds additional complexity right now that I'm not sure makes sense, because a task within a batch job would get its own section, regardless of the level it is on.
 
 ```yaml
 version: 1
@@ -203,7 +205,7 @@ Attributes currently include:
 - [Duration](#duration)
 - [Environment](#environment)
 - [Current working directory](#current-working-directory)
-
+- [Additional Flags](#additional-flags)
 
 ### Duration
 
@@ -300,6 +302,19 @@ tasks:
 
 The job above shows the same running logic with pennant, but we are sitting in the directory with the parameter script instead. The same rules apply for the global and task-level definitions under "attributes."
 
+### Additional Flags
+
+Additional flags are attributes that may or may not be supported by different job managers. Here is an example to add `--watch` (or similar) to say you want to submit and stream the output (and block further submits):
+
+```yaml
+version: 1
+
+tasks:
+- command: ["spack", "install", "sqlite"]
+  attributes:
+    watch: true
+```
+
 ## Requires
 
 The "requires" section includes compatibility metadata or key value pairs that are provided to a scheduler or image selection process to inform resource needs. The following applies:
@@ -324,7 +339,7 @@ In the second case, it is assumed that services that are not cleaned up will be 
 version: 1
 
 resources:
-- count: 4
+  count: 4
   type: node
   with:
    - count: 1
@@ -357,7 +372,7 @@ tasks:
   depends_on: ["train"]
   replicas: 10
   resources:
-  - count: 1
+    count: 1
     type: node
     command:
       - bash
@@ -422,3 +437,7 @@ Additional properties and attributes we might want to consider (only when needed
 
 - user: variables specific to the user
 - parameters: task parameters or state that inform resource selection
+- ability to add `--watch` or generally stream logs.
+- easy way to write scripts / config files? Just via a task?
+- how to represent an OR for resources (not thought about this yet)
+- depends_on cannot be supported yet because of [this](https://github.com/flux-framework/flux-core/issues/5917) and I don't like the design of needing to carry around a lookup of job submit IDs to task names.

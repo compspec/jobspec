@@ -1,11 +1,10 @@
-import copy
 import os
 import sys
 
 # This imports the latest version
 import jobspec.core as js
 import jobspec.defaults as defaults
-import jobspec.utils as utils
+import jobspec.logger as logger
 from jobspec.logger import LogColors
 
 
@@ -89,8 +88,11 @@ class TransformerBase:
         prefix = f"{self.name} {step.name}".ljust(15)
         print(f"=> {LogColors.OKCYAN}{prefix}{LogColors.ENDC}", end="")
         try:
-            out = (step.run() or "").ljust(25)
-            print(f"{LogColors.OKBLUE}{out}{LogColors.ENDC} {LogColors.OKGREEN}OK{LogColors.ENDC}")
+            result = step.run()
+            print(
+                f"{LogColors.OKBLUE}{result.out}{LogColors.ENDC} {LogColors.OKGREEN}OK{LogColors.ENDC}"
+            )
+            result.print_extra()
         except Exception as e:
             print(f"\n{LogColors.RED}{str(e)}{LogColors.ENDC}")
             sys.exit()

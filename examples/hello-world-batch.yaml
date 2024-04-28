@@ -1,37 +1,28 @@
-# TODO test these out on on x86, then create arm specs
+# This is a batch because we have resources at the top level
+# They are inherited by tasks
 version: 1
+requires:
+  io.archspec:
+    cpu.target: amd64
+
 resources:
-- count: 4
+  count: 2
   type: node
-  with:
-  - count: 1
-    label: hello-world
-    type: slot
-    with:
-    - count: 4
-      type: core
 
-task:
-  transform:
-  - step: write
-    filename: batch.sh
-    executable: true
+tasks:
+- name: task-1
+  command:
+    - bash
+    - -c
+    - "echo Starting task 1; sleep 3; echo Finishing task 1"
 
-  - step: batch
-    filename: batch.sh
-    # wait: true
+- name: task-2
+  depends_on: ["task-1"]
 
-  scripts: 
-    - name: batch.sh
-      content: |
-        #!/bin/bash
-        flux submit -N 1 --watch echo what is the meaning
-        flux submit -N 1 --watch echo of all of this
-  count:
-    per_slot: 1
-  resources:
-    hardware:
-      hardware.gpu.available: 'no'
-    io.archspec:
-      cpu.target: amd64
-  slot: hello-world
+  # This is an example of a custom "task-level' requires
+  requires:
+    hardware.gpu.available: "yes"
+  command:
+      - bash
+      - -c
+      - "echo Starting task 2; sleep 3; echo Finishing task 2"

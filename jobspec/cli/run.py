@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import os
+import sys
+
 
 def main(args, _):
     """
@@ -15,6 +18,10 @@ def main(args, _):
     # that is in a cronjob, for loop receiver, etc.
     # We can add additional options to the init here
     plugin = registry.get_plugin(args.transform)()
+
+    # The jobspec needs to exist as a file here
+    if not os.path.exists(args.jobspec):
+        sys.exit(f"JobSpec {args.jobspec} does not exist.")
 
     # Run the plugin with the jobspec
     plugin.run(args.jobspec)

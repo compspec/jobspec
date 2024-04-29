@@ -1,5 +1,7 @@
 # JobSpec the Next Generation
 
+> Prototype v1 (not implemented)
+
 ## Example
 
 A basic JobSpec to build the package "ior" with spack and then run it looks like this:

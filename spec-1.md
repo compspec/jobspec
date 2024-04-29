@@ -132,7 +132,7 @@ For this example, let's look at the "Mini Mummi" workflow, which requires:
 4. Within the top level batch, submitting other jobs to run training
 5. And doing the same for testing.
 
-While we could imagine another level of nexting (for example, the machine learning tasks each being a group with a subset of tasks) let's start with this design for now. It might look like this. Note that the requires (and other) sections are removed for brevity:
+While we could imagine another level of nesting (for example, the machine learning tasks each being a group with a subset of tasks) let's start with this design for now. It might look like this. Note that the requires (and other) sections are removed for brevity:
 
 ```yaml
 version: 1
@@ -383,7 +383,7 @@ groups:
   - command: ["pennant", "/opt/pennant/test/params.pnt"]
     depends_on: ["build"]
     attributes:
-      envirionment:
+      environment:
         LD_LIBRARY_PATH: /usr/local/cuda/lib
 ```
 
@@ -624,6 +624,7 @@ Additional properties and attributes we might want to consider
 
 - Next step - PR to add support for dependency.name to flux-core. I see where this needs to be added (and the logic) and would learn a lot from a hackathon (where I can lead and write the code)
   - Would like to get it supported in flux core first, but if not possible need to consider using jobids here (not ideal)
+- Environment still needs to be added to the implementation, along with using requires and attributes meaningfully.
 - for groups in groups (batches) along with submit we need logic to wait for completion before the instance cleans up.
 - user: variables specific to the user
 - parameters: task parameters or state that inform resource selection

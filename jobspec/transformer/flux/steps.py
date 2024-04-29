@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import uuid
@@ -160,18 +161,20 @@ class batch(JobBase):
         """
         Generate the batch script.
         """
-        data = script_prefix
+        data = copy.deepcopy(script_prefix)
         for task in self.tasks:
             if task.name == "batch":
-                cmd, _ = self.generate_command(waitable=True)
+                cmd, _ = task.generate_command(waitable=True)
                 data.append(" ".join(cmd))
                 # This is the jobspec
-                data.append("# rm -rf {cmd[-1]}")
-            data.append(" ".join(task.generate_command(waitable=True)))
+                data.append(f"# rm -rf {cmd[-1]}")
+            else:
+                data.append(" ".join(task.generate_command(waitable=True)))
 
         # Ensure all jobs are waited on
         data.append("flux job wait --all")
-        return {"mode": 33216, "data": "\n".join(data), "encoding": "utf-8"}
+        script = "\n".join(data)
+        return {"mode": 33216, "data": script, "encoding": "utf-8"}
 
     def generate_command(self, waitable=False):
         """

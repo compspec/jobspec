@@ -64,6 +64,9 @@ class TransformerBase:
         """
         raise NotImplementedError
 
+    def announce(self):
+        pass
+
     def run(self, filename):
         """
         Run the transformer
@@ -74,6 +77,7 @@ class TransformerBase:
         # Get validated transformation steps
         # These will depend on the transformer logic
         steps = self.parse(jobspec)
+        self.announce()
 
         # Run each step to submit the job, and that's it.
         for step in steps:

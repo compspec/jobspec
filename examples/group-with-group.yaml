@@ -1,0 +1,27 @@
+version: 1
+
+# This is an example of a group with a nested group,
+# which means we would have a flux batch within a flux batch!
+resources:
+  common:
+    count: 1
+    type: node
+
+groups:
+- name: group-1
+  resources: common
+  tasks:
+    - command:
+      - bash
+      - -c
+      - "echo Starting task 1 in group 1; sleep 3; echo Finishing task 1 in group 1"
+    - group: group-2
+
+- name: group-2
+  depends_on: ["group-1"]
+  resources: common
+  tasks:
+    - command:
+      - bash
+      - -c
+      - "echo Starting task 1 in group 2; sleep 3; echo Finishing task 1 in group 2"

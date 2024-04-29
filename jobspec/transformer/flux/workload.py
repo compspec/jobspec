@@ -2,6 +2,7 @@ import copy
 
 import jobspec.core as js
 import jobspec.core.resources as rcore
+from jobspec.logger import LogColors
 from jobspec.runner import TransformerBase
 
 from .steps import batch, stage, submit
@@ -19,6 +20,13 @@ class FluxWorkload(TransformerBase):
     # These metadata fields are required (and checked for)
     name = "flux"
     description = "Flux Framework workload"
+
+    def announce(self):
+        """
+        Announce prints an additional prefix during run
+        """
+        prefix = "flux workload".ljust(15)
+        print(f"=> {LogColors.OKCYAN}{prefix}{LogColors.ENDC}")
 
     def parse(self, jobspec):
         """
@@ -47,6 +55,11 @@ class FluxWorkload(TransformerBase):
         # We copy because otherwise the dict changes size when the task parser removes
         groups = copy.deepcopy(self.group_lookup)
         for name, group in groups.items():
+            # Check if the group was already removed by another group task,
+            # and don't run if it was!
+            if name not in self.group_lookup:
+                continue
+
             self.tasks.insert(
                 0, self.parse_group(group, name, self.resources, requires=self.requires)
             )
@@ -161,7 +174,7 @@ class FluxWorkload(TransformerBase):
         steps = []
         for i, task in enumerate(tasks):
             # Create a name based on the index or the task name
-            name = task.get("name") or f"task-{i}"
+            name = task.get("name") or f"{name_prefix}task-{i}"
 
             # Case 1: We found a group! Parse here and add to steps
             group_name = task.get("group")

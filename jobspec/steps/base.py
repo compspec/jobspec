@@ -1,6 +1,3 @@
-import jobspec.steps.helpers as helpers
-
-
 class StepBase:
     """
     A base step describes the design of a step.
@@ -8,20 +5,25 @@ class StepBase:
 
     required = []
 
-    def __init__(self, js, options):
+    def __init__(self, js, **kwargs):
         """
         A step takes a task definition and custom options
+
+        Note that we aren't using options now, but could be.
         """
         self.jobspec = js
-        self.options = options
         if not hasattr(self, "name"):
             raise ValueError(f"Step {self} is missing a name")
+
+        # Each step can take custom options (the keyword arguments)
+        self.options = kwargs
 
         # Shared validation
         self._validate()
 
-        # Custom validation
+        # Custom validation and setup
         self.validate()
+        self.setup(**kwargs)
 
     def _validate(self):
         """
@@ -40,45 +42,15 @@ class StepBase:
         """
         pass
 
-    def flatten_slot(self):
+    def setup(self, **kwargs):
         """
-        Find the task slot, flatten it, and return
+        Custom setup
+
+        Akin to overriding init, but easier to write.
         """
-        slot = self.jobspec["task"]["slot"]
-        resources = self.jobspec.get("resources", [])
+        pass
 
-        # Traverse each section. There is usually only one I guess
-        for resource in resources:
-            flat = {}
-            if helpers.find_resources(flat, resource, slot):
-                break
-
-        return flat
-
-    @property
-    def scripts(self):
-        """
-        Return a lookup of scripts
-
-        Many steps will have need for this.
-        """
-        if hasattr(self, "_scripts") and self._scripts is not None:
-            return self._scripts
-
-        # Task scripts must have a name and content
-        task = self.jobspec.get("task")
-        scripts = {}
-        if task:
-            for script in task.get("scripts"):
-                if "name" not in script:
-                    raise ValueError(f"Script {script} is missing a name.")
-                if "content" not in script:
-                    raise ValueError(f"Script {script} is missing content.")
-                scripts[script["name"]] = script
-        self._scripts = scripts
-        return scripts
-
-    def run(self, stage, *args, **kwargs):
+    def run(self, *args, **kwargs):
         """
         Run a step.
 

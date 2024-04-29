@@ -1,0 +1,58 @@
+version: 1
+
+# Resources can be used with tasks or task groups
+# They are named so can be referenced in multiple places,
+# and used with AND and OR
+resources:
+  mini-mummi:
+    count: 8
+    type: node
+    with:
+    - type: gpu
+      count: 2
+    - type: cores
+      count: 4
+
+  mummi-gpu:
+    count: 2
+    type: node
+    with:
+    - type: gpu
+      count: 1
+
+  mummi-cpu:
+    count: 2
+    type: node
+    with:
+    - type: cores
+      count: 4
+
+# A group is a "flux batch"
+groups:
+ - name: mini-mummi
+   resources: mini-mummi
+   tasks:
+
+   # flux batch
+   - group: train
+
+   # flux submit to train job
+   - name: test
+     replicas: 20
+     resources: mummi-cpu
+     command:
+       - bash
+       - -c
+       - echo Running machine learning test
+
+ # flux batch from mini-mummi group
+ - name: train
+   resources: mummi-gpu|mummi-cpu
+   tasks:
+
+    # If a task doesn't have resources, it inherits parent group (uses all)
+    - name: train
+      command:
+       - bash
+       - -c
+       - echo running machine learning train

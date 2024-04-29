@@ -1,0 +1,30 @@
+version: 1
+
+# This is an example of a group defined within top level tasks
+# the reason you'd want to do this is to define a dependency
+resources:
+  common:
+    count: 1
+    type: node
+
+groups:
+- name: task-2
+  depends_on: ["task-1"]
+  resources: common
+  tasks:
+    - command:
+      - bash
+      - -c
+      - "echo Starting task 2; sleep 3; echo Finishing task 2"
+
+tasks:
+  # flux submit...
+- name: task-1
+  resources: common
+  command:
+    - bash
+    - -c
+    - "echo Starting task 1; sleep 3; echo Finishing task 1"
+
+  # flux batch...
+- group: task-2

@@ -10,7 +10,8 @@
   },
       "extensions": [
         "ms-vscode.cmake-tools",
-        "golang.go"
+        "golang.go",
+        "ms-python.python"
       ]
     }
   },

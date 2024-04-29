@@ -163,19 +163,23 @@ class batch(JobBase):
         data = script_prefix
         for task in self.tasks:
             if task.name == "batch":
-                print("TODO deal with nested batch")
-                import IPython
-
-                IPython.embed()
+                cmd, _ = self.generate_command(waitable=True)
+                data.append(" ".join(cmd))
+                # This is the jobspec
+                data.append("# rm -rf {cmd[-1]}")
             data.append(" ".join(task.generate_command(waitable=True)))
 
         # Ensure all jobs are waited on
         data.append("flux job wait --all")
         return {"mode": 33216, "data": "\n".join(data), "encoding": "utf-8"}
 
-    def run(self, *args, **kwargs):
+    def generate_command(self, waitable=False):
         """
-        Run the batch step
+        Convenience function to generate the command.
+
+        This is also intended for flux batch to use,
+        and we expect the last argument to be the temporary file
+        that needs to be cleaned up
         """
         # With batch, we are going to cheat and run a flux job submit --dry-run
         # with the command that would normally be derived for flux batch.
@@ -199,19 +203,32 @@ class batch(JobBase):
         files["batch-script"] = self.write_tasks_script()
         js["attributes"]["system"]["files"] = files
 
+        # Write the jobspec to a temporary file, target for cleanup
+        tmpfile = utils.get_tmpfile(prefix="jobspec-")
+        utils.write_file(json.dumps(js), tmpfile)
+
         # Prepare a result, we can show the batch script if debug is on
         result = Result()
         for line in files["batch-script"]["data"].split("\n"):
             result.add_debug_line(line)
 
-        # Write the jobspec to a temporary file, target for cleanup
-        tmpfile = utils.get_tmpfile(prefix="jobspec-")
-        utils.write_file(json.dumps(js), tmpfile)
-
         # and submit with flux job submit <jobspec>
         # We can't really watch here, or do anything with attributes yet
-        cmd = ["flux", "job", "submit", tmpfile]
+        cmd = ["flux", "job", "submit"]
+        if waitable:
+            cmd += ["--flags=waitable"]
+        cmd.append(tmpfile)
+        return cmd, result
+
+    def run(self, *args, **kwargs):
+        """
+        Run the batch step
+        """
+        cmd, result = self.generate_command()
         res = utils.run_command(cmd, check_output=True)
+
+        # The temporary file to cleanup is the last in the list
+        tmpfile = cmd[-1]
 
         # Prepare a result to return
         result.out = res["message"].strip()

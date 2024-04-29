@@ -17,7 +17,6 @@ def find_resources(flat, resource, slot, last_one=False):
     # More traversing...
     if "with" in resource:
         for r in resource["with"]:
-            print(r)
             find_resources(flat, r, slot, last_one)
     return flat
 
@@ -31,6 +30,12 @@ def parse_resource_subset(named_resources, resources):
     the batch has won't be satisfied. But if this is a grow/autoscale
     setup, maybe it eventually could be, so we allow it.
     """
+    # If we are given a Resources object, unwrap the data
+    if hasattr(resources, "data"):
+        resources = resources.data
+    if hasattr(named_resources, "data"):
+        named_resources = named_resources.data
+
     # Case 1: we have resources as a string and it's a member of named
     if isinstance(resources, str):
         if "|" in resources:

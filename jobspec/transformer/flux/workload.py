@@ -1,53 +1,36 @@
+import copy
+
 import jobspec.core as js
 import jobspec.core.resources as rcore
-import jobspec.steps.runner as step_runner
-from jobspec.transformer.result import Result
+from jobspec.runner import TransformerBase
 
-from .steps import batch, submit
+from .steps import batch, stage, submit
 
 
-class FluxWorkload:
+class FluxWorkload(TransformerBase):
     """
-    The flux workload (batch and submit) holder
+    The flux workload (batch and submit) transformer
+
+    The transformer needs to share state between tasks and groups, so we create
+    a shared class to do that. A "flux workload" is some number of tasks / batches
+    It replaces the step abstractions to be run.
     """
 
-    name = "workload"
+    # These metadata fields are required (and checked for)
+    name = "flux"
+    description = "Flux Framework workload"
 
-    def __init__(self, jobspec):
+    def parse(self, jobspec):
         """
-        Add the jobspec and set globals (resources, tasks, requires)
+        Parse the jobspec into tasks for flux.
         """
+        # Reset the jobspec and groups and tasks
         self.js = jobspec
         self.group_lookup = {}
 
         # Top level, a-la-carte tasks (steps)
-        # TODO - we might need to decide on order for top level tasks vs. groups
         self.tasks = []
 
-    @property
-    def resources(self):
-        """
-        This returns a global resource lookup
-        """
-        return self.js.get("resources", {})
-
-    @property
-    def requires(self):
-        return self.js.get("requires", {})
-
-    def run(self, *args, **kwargs):
-        """
-        Run the steps of the workload, some number of submit/batch.
-        """
-        print()
-        # This will be a combination of submit and batch
-        for step in self.tasks:
-            step_runner.run("flux", step)
-
-    def parse(self):
-        """
-        Parse the jobspec into tasks for flux.
-        """
         # Parse top level groups into a lookup. Those that don't have a name
         # are given a name based on order, and assumed not to be linked to anything
         for i, group in enumerate(self.js.get("groups") or []):
@@ -61,10 +44,26 @@ class FluxWorkload:
             self.tasks = self.parse_tasks(tasks, self.resources, requires=self.requires)
 
         # Now parse remaining groups "a la carte" that aren't linked to top level tasks
-        for name, group in self.group_lookup.items():
-            self.tasks.prepend(
-                self.parse_group(group, name, self.resources, requires=self.requires)
+        # We copy because otherwise the dict changes size when the task parser removes
+        groups = copy.deepcopy(self.group_lookup)
+        for name, group in groups.items():
+            self.tasks.insert(
+                0, self.parse_group(group, name, self.resources, requires=self.requires)
             )
+
+        # Return the transformer to call run to
+        return self.tasks
+
+    @property
+    def resources(self):
+        """
+        This returns a global resource lookup
+        """
+        return self.js.get("resources", {})
+
+    @property
+    def requires(self):
+        return self.js.get("requires", {})
 
     def parse_group(self, group, name, resources=None, requires=None, attributes=None):
         """
@@ -94,7 +93,8 @@ class FluxWorkload:
             name_prefix = f"{name}-"
             steps = self.parse_tasks(
                 tasks,
-                resources=group_resources,
+                # Still provide global resources as a lookup
+                resources=resources,
                 requires=group_requires.data,
                 attributes=group_attributes,
                 name_prefix=name_prefix,
@@ -187,3 +187,9 @@ class FluxWorkload:
             steps.append(new_step)
 
         return steps
+
+
+# A transformer can register shared steps, or custom steps
+FluxWorkload.register_step(batch)
+FluxWorkload.register_step(submit)
+FluxWorkload.register_step(stage)

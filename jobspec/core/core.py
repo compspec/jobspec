@@ -97,3 +97,4 @@ class Requires(ResourceBase):
 
             # If we have the group, update on the level of fields
             self.data[group].update(fields)
+        return self

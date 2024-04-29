@@ -1,1 +1,1 @@
-from .transformer import Transformer
+from .workload import FluxWorkload as Transformer

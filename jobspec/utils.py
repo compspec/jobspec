@@ -45,7 +45,7 @@ def get_tmpdir(tmpdir=None, prefix="", create=True):
     Get a temporary directory for an operation.
     """
     tmpdir = tmpdir or tempfile.gettempdir()
-    prefix = prefix or "shpc-tmp"
+    prefix = prefix or "jobspec-"
     prefix = "%s.%s" % (prefix, next(tempfile._get_candidate_names()))
     tmpdir = os.path.join(tmpdir, prefix)
 

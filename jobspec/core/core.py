@@ -26,9 +26,9 @@ class Jobspec(ResourceBase):
         """
         jsonschema.validate(self.data, self.schema)
 
-        # Require at least one of command or steps
+        # Require at least one of command or steps, unless it is a group
         for task in self.data.get("tasks", []):
-            if "command" not in task and "steps" not in task:
+            if "group" not in task and ("command" not in task and "steps" not in task):
                 raise ValueError("Jobspec is not valid, each task must have a command or steps")
 
 

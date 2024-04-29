@@ -1,9 +1,11 @@
 from jobspec.logger import logger
 
+
 class Result:
     """
     Helper class to encompass a result
     """
+
     def __init__(self, out=None, prefix="   ", has_depends_on=False):
         self.out = out or ""
         self.lines = []

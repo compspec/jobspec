@@ -124,6 +124,7 @@ jobspec_nextgen = {
                 # Tasks for the group
                 "tasks": {"$ref": "#definitions/tasks"},
             },
+            "additionalProperties": False,
         },
         "intranode_resource_vertex": {
             "description": "schema for resource vertices within a node, cannot have child vertices",

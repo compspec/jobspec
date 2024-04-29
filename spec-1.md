@@ -3,7 +3,7 @@
 ## Example
 
 Let's start with a simple example. This is a **tasks a la carte** pattern, which means submitting isolated tasks, but they depend on one another
-(which is not required for the pattern). We aren't doing anything fancy with flux hierarchies. 
+(which is not required for the pattern). We aren't doing anything fancy with flux hierarchies.
 For this set of tasks, we want to write a JobSpec to build and run the package "ior" with spack. That might look like this:
 
 ```yaml
@@ -89,7 +89,7 @@ tasks:
 
 This is a more condensed, and easier to read version. We aren't reading _exactly_ from top to bottom because we have to jump back up to see the "spack-resources" reference, but it's more succinct in total, making
 it appealing still. The above assumes a cluster with a shared filesystem, where a spack install is already on the user's default path.
-Now let's walk through specific sections of the above, and then we will move into advanced patterns. 
+Now let's walk through specific sections of the above, and then we will move into advanced patterns.
 
 ## Tasks
 
@@ -120,7 +120,7 @@ This above assumes a shared filesystem.
 
 ## Groups
 
-Different workload managers can represent the concept of a logical grouping of tasks. While they might vary in the nesting of the groups (for example, Flux can nest up the smallest granularity or unit of resource possible) most have the idea of a top level batch script running smaller commands. So let's start with that. 
+Different workload managers can represent the concept of a logical grouping of tasks. While they might vary in the nesting of the groups (for example, Flux can nest up the smallest granularity or unit of resource possible) most have the idea of a top level batch script running smaller commands. So let's start with that.
 
 - A **group** is a logical set of tasks that are run under shared resources.
 
@@ -181,7 +181,7 @@ groups:
   - local: true
     command: ["kubectl", "apply", "-f", "./task-queue.yaml"]
 
-  # A reference to the group "train" defined below, 
+  # A reference to the group "train" defined below,
   # This will be a flux batch in the top level flux batch
   - group: train
 
@@ -206,7 +206,7 @@ groups:
      - -c
      - |
       ml-train ... -o train.json
-      compspec save-artifact ./train.json --host http://localhost:8080      
+      compspec save-artifact ./train.json --host http://localhost:8080
 
    # And stop the service
    - local: true
@@ -586,7 +586,7 @@ resources:
 groups:
   - name: machine-learning
     resources:
-  
+
     tasks:
 
     # Local means run at the instance level, no flux submit
@@ -597,9 +597,9 @@ groups:
     - name: sleep
       resources: single-node
       command: ["sleep", "infinity"]
-   
+
     # flux batch to launch the generate-data level
-    # TODO we need logic here to say "wait until this finishes" 
+    # TODO we need logic here to say "wait until this finishes"
     # same for submits
     - group: generate-data
 
@@ -607,7 +607,7 @@ groups:
     - local: true
       command: kubectl delete -f ./database.yaml
 
-  # this is another flux batch, launched before the end, 
+  # this is another flux batch, launched before the end,
   - name: generate-data
     resources: generate-data
     tasks:

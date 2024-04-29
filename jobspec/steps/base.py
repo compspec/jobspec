@@ -21,8 +21,9 @@ class StepBase:
         # Shared validation
         self._validate()
 
-        # Custom validation
+        # Custom validation and setup
         self.validate()
+        self.setup(**kwargs)
 
     def _validate(self):
         """
@@ -38,6 +39,14 @@ class StepBase:
     def validate(self):
         """
         Validate the step
+        """
+        pass
+
+    def setup(self, **kwargs):
+        """
+        Custom setup
+
+        Akin to overriding init, but easier to write.
         """
         pass
 

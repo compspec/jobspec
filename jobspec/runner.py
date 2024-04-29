@@ -1,11 +1,9 @@
 import os
-import sys
 
 # This imports the latest version
 import jobspec.core as js
 import jobspec.defaults as defaults
-import jobspec.logger as logger
-from jobspec.logger import LogColors
+import jobspec.steps.runner as step_runner
 
 
 class TransformerBase:
@@ -79,23 +77,7 @@ class TransformerBase:
 
         # Run each step to submit the job, and that's it.
         for step in steps:
-            self.run_step(step)
-
-    def run_step(self, step):
-        """
-        Run a single step. Make it pretty.
-        """
-        prefix = f"{self.name} {step.name}".ljust(15)
-        print(f"=> {LogColors.OKCYAN}{prefix}{LogColors.ENDC}", end="")
-        try:
-            result = step.run()
-            print(
-                f"{LogColors.OKBLUE}{result.out}{LogColors.ENDC} {LogColors.OKGREEN}OK{LogColors.ENDC}"
-            )
-            result.print_extra()
-        except Exception as e:
-            print(f"\n{LogColors.RED}{str(e)}{LogColors.ENDC}")
-            sys.exit()
+            step_runner.run(self.name, step)
 
     def load_jobspec(self, filename):
         """

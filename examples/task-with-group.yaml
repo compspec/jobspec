@@ -11,7 +11,8 @@ groups:
 - name: task-2
   depends_on: ["task-1"]
   resources: common
-  command:
+  tasks:
+    - command:
       - bash
       - -c
       - "echo Starting task 2; sleep 3; echo Finishing task 2"

@@ -87,9 +87,9 @@ tasks:
       ior -b 10g -O summaryFormat=json
 ```
 
-This is a more condensed, and easier to read version. And to make our lives easier (for writing Go) we are going to adhere to strictly requiring all resources to be in named sections at the top. We are also going to add a dummy field "schedule" to indicate that a resource is at the top level and should be asked for (to the scheduler) to schedule separately. I know this is a bad design and I welcome someone else to work on it. I am just too dumb today.
-
-The above assumes a cluster with a shared filesystem, where a spack install is already on the user's default path. Now let's walk through specific sections of the above, and then we will move into advanced patterns.
+This is a more condensed, and easier to read version. We aren't reading _exactly_ from top to bottom because we have to jump back up to see the "spack-resources" reference, but it's more succinct in total, making
+it appealing still. The above assumes a cluster with a shared filesystem, where a spack install is already on the user's default path.
+Now let's walk through specific sections of the above, and then we will move into advanced patterns.
 
 ## Tasks
 
@@ -226,9 +226,15 @@ The "local" alongside a task command indicates that it isn't a submit or batch, 
 
 ## Resources
 
-Now let's talk about resources. Resources are all required to be in named groups at the top section. If you don't put `schedule: true` in any group, they are all assumed to be wanted for a separate scheduling request. If you only want to ask for a subset of the resources (or some are nested) then set `scheduled: true` to those.
+Now let's talk about resources. The most basic definition of resources has them alongside groups and tasks.
+One of the following is REQUIRED:
+
+  - A top level "resources" section with named entries that are referenced within tasks and/or groups. In this case, instead of an explicit definition of resources, a task or group can define a single string with the key (lookup) to the named section.
+  - Within- group or task "resources" that are defined explicitly alongside the task or group.
+
 While it is not enforced (assuming you know what you are doing, or something like grow/autoscale is possible) it is typically suggested that child resources are a subset of parent resources. Some special cases included:
 
+- If a group does not have resources defined, each task within is expected to have resources, and the group is the sum across them.
 - If a task does not have resources defined, it inherits the same resources as the parent group.
 - A standalone task or group without resources is not allowed.
 

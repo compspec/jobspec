@@ -3,6 +3,11 @@ requires:
   io.archspec:
     cpu.target: amd64
 
+resources:
+  single-node:
+    count: 1
+    type: node
+
 tasks:
 - name: task-1
   command:
@@ -10,10 +15,7 @@ tasks:
     - -c
     - "echo Starting task 1; sleep 3; echo Finishing task 1"
 
-  resources:
-    count: 1
-    type: node
-
+  resources: single-node
 - name: task-2
   depends_on: ["task-1"]
 
@@ -25,6 +27,4 @@ tasks:
       - -c
       - "echo Starting task 2; sleep 3; echo Finishing task 2"
 
-  resources:
-    count: 1
-    type: node
+  resources: single-node

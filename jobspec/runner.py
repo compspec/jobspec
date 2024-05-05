@@ -67,6 +67,9 @@ class TransformerBase:
     def announce(self):
         pass
 
+    def flatten(self, filename):
+        raise NotImplementedError
+
     def run(self, filename):
         """
         Run the transformer

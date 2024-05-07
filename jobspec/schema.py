@@ -49,7 +49,7 @@ jobspec_nextgen = {
                 # Count is only required when below a slot
                 "count": {"type": "integer", "minimum": 1},
                 "requires": {
-                    "type": "object",
+                    "type": "array",
                     "items": {"type": "object"},
                 },
                 "attributes": {"$ref": "#/definitions/attributes"},

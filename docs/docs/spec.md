@@ -33,7 +33,8 @@ resources:
       count: 4
       type: gpu
       requires:
-        hardware.gpu.available: "yes"
+        org.opencontainers:
+          hardware.gpu.available: "yes"
 
 tasks:
 - name: build

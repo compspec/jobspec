@@ -8,41 +8,77 @@ For this set of tasks, we want to write a JobSpec to build and run the package "
 
 ```yaml
 version: 1
-
-resources:
-  spack-build:
-    count: 1
-    type: node
-
-    # The node requires this architecture
-    requires:
-      io.archspec:
-        cpu.target: amd64
-
-    # We just want one node with 4 cores
-    with:
-     - count: 4
-       type: core
-
-
-  # I want one node with 4 gpu
-  ior-run:
-    count: 1
-    type: node
-    with:
-      count: 4
-      type: gpu
-      requires:
-        hardware.gpu.available: "yes"
+requires:
+  io.archspec:
+    cpu.target: amd64
 
 tasks:
 - name: build
   command: ["spack", "install", "ior"]
-  resources: spack-build
+  resources:
+    count: 4
+    type: node
+    with:
+     - count: 1
+       type: slot
+       with:
+       - count: 4
+         type: core
 
 - name: ior
   depends_on: ["build"]
-  resources: ior-run
+  resources:
+    count: 4
+    type: node
+    with:
+    - count: 1
+      type: slot
+      with:
+      - count: 4
+        type: core
+
+    # This is an example of a custom "task-level' requires
+    requires:
+      hardware.gpu.available: "yes"
+
+    command:
+      - bash
+      - -c
+      - |
+        spack load ior
+        ior -b 10g -O summaryFormat=json
+```
+
+Note that each task has separately defined resources, and that would make sense if the different tasks needed them to be different. But do you notice anything?
+These resources are the same! If we have shared logic (the same resource request between tasks) we can move the resources into an upper, named block. That would look like this:
+
+```yaml
+version: 1
+requires:
+  io.archspec:
+    cpu.target: amd64
+
+resources:
+  spack-resources:
+    count: 4
+    type: node
+    with:
+    - count: 1
+      type: slot
+      with:
+      - count: 4
+        type: core
+
+tasks:
+- name: build
+  command: ["spack", "install", "ior"]
+  resources: spack-resources
+
+- name: ior
+  depends_on: ["build"]
+  resources: spack-resources
+  requires:
+    hardware.gpu.available: "yes"
   command:
     - bash
     - -c
@@ -51,7 +87,9 @@ tasks:
       ior -b 10g -O summaryFormat=json
 ```
 
-The top level resources define the schedule-able units of work, which are referenced by underlying tasks and groups. The grouping in this manner makes it easier to read, and resources combined with requirements "requires" makes it easier to implement. We are also going to add a dummy field "schedule" to indicate that a resource is at the top level and should be asked for (to the scheduler) to schedule separately. This is for special cases where (for some reason) you are passing in a resource spec and don't want all to be asked for to schedule. If "schedule" is not present anywhere, all top level resource groups are expected to be wanted to be scheduled. The above also assumes a cluster with a shared filesystem, where a spack install is already on the user's default path. Now let's walk through specific sections of the above, and then we will move into advanced patterns.
+This is a more condensed, and easier to read version. And to make our lives easier (for writing Go) we are going to adhere to strictly requiring all resources to be in named sections at the top. We are also going to add a dummy field "schedule" to indicate that a resource is at the top level and should be asked for (to the scheduler) to schedule separately. I know this is a bad design and I welcome someone else to work on it. I am just too dumb today.
+
+The above assumes a cluster with a shared filesystem, where a spack install is already on the user's default path. Now let's walk through specific sections of the above, and then we will move into advanced patterns.
 
 ## Tasks
 
@@ -150,9 +188,6 @@ groups:
   # flux submit to run test jobs, also run from top level batch
   - name: test
     replicas: 20
-
-    # This says "give me gpu first, then cpu"
-    # This is not implemented or supported yet
     resources: mummi-gpu|mummi-cpu
     depends_on: [train]
     command:
@@ -168,7 +203,7 @@ groups:
 - name: train
   resources: mummi-gpu
   tasks:
-    # If a task doesn't have resources, it inherits parent group (uses all)
+  # If a task doesn't have resources, it inherits parent group (uses all)
   - name: train
     command:
      - bash
@@ -197,18 +232,24 @@ While it is not enforced (assuming you know what you are doing, or something lik
 - If a task does not have resources defined, it inherits the same resources as the parent group.
 - A standalone task or group without resources is not allowed.
 
-Here is an example using shared resources, and running one task five times ("replicas" is 5) each of which is a separate `flux submit` under the same allocation of 4 nodes. In this first example, we are asking explicitly for 4 cores, each of which is on one node.
+Here is an example using shared resources, and running one task four times ("replicas" is 4) each of which is a separate `flux submit` under the same allocation of 4 nodes.
 
 ```yaml
 version: 1
+requires:
+  io.archspec:
+    cpu.target: amd64
 
 resources:
   hello-world:
     count: 4
     type: node
     with:
-    - count: 4
-      type: core
+    - count: 1
+      type: slot
+       with:
+       - count: 4
+         type: core
 
 tasks:
 - command: ["echo", "hello", "world"]
@@ -218,35 +259,15 @@ tasks:
   resources: hello-world
 ```
 
+A "name" field is not needed for the task if it is not referenced anywhere. The above can have any dependency relationship. Here is an example of running one task eight times, each of which is a separate `flux submit` under the same allocation of 4 nodes. This means 4 jobs will be running at once, with 4 waiting to run after the first 4 are finished. Note that we do *not* have default resources (e.g., one node) because we expect the user to explicitly ask for what they need.
 
-Here is the same, but asking instead for any number of nodes, and "just give me those 4 cores anywhere!" The only change is switching count to replicas. The node is left as an abstraction in case we want to add resource requirements.
-
-```yaml
-version: 1
-resources:
-  hello-world:
-    type: node
-    replicas: 4
-    with:
-    - count: 4
-      type: core
-
-tasks:
-- command: ["echo", "hello", "world"]
-
-  # Run this task 4 times for each set of 4 cores
-  replicas: 4
-  resources: hello-world
-```
-
-
-A "name" field is not needed for the task if it is not referenced anywhere. The above can have any dependency relationship. The reason resources are at the top level is to make sharing across tasks easy. For example, start with this jobspec:
+> Note that I've made resources an object instead of list, which I'm doing until there is good reason to not do that. The list adds additional complexity right now that I'm not sure makes sense, because a task within a batch job would get its own section, regardless of the level it is on.
 
 ```yaml
 version: 1
 resources:
   spack:
-    count: 4
+    count: 1
     type: node
 
 tasks:
@@ -272,38 +293,17 @@ tasks:
   resources: spack
 ```
 
-### Requires
+## Attributes
 
-The "requires" section includes compatibility metadata or key value pairs that are provided to a scheduler or image selection process to inform resource needs. Since we need to know the level of the graph to look (for example, a node attribute is different from a GPU one) we place them on the level of the resource definition. Any specification of "requires" is OPTIONAL.
-Here is an example of adding requires to the spack job above.
-
-
-```yaml
-version: 1
-resources:
-  spack:
-    count: 4
-    type: node
-    requires:
-      io.archspec:
-        platform: amd64
-
-tasks:
-- command: ["spack", "install", "sqlite"]
-  resources: spack
-```
-
-### Attributes
-
-Attributes are also defined on the level of resources - the reason being that attributes are scoped to schedulable units. They can also be defined at lower levels (tasks and groups) that are used to submit jobs in nested instances, but won't be asked for on the top level.
-It is up to the user to make sure these declarations make sense (for example, you can't ask for a duration for a child job to be longer than the top level resource request duration).
+Attributes work the same way as resources. They can be defined either on the global (top) level to be applied to all tasks, or on the level of an individual task to over-ride any equivalent group setting.
+Attributes, by way of being specific to tasks, cannot be applied globally. Attributes currently include:
 
 - [Duration](#duration)
 - [Environment](#environment)
 - [Current working directory](#current-working-directory)
 - [Additional Flags](#additional-flags)
 
-#### Duration
+### Duration
 
 The duration is the maximum runtime for your batch job or set of individual tasks. The following applies:
 
@@ -312,84 +312,121 @@ The duration is the maximum runtime for your batch job or set of individual task
 - Thus, child tasks must be <= the global duration.
 - When defined at the task level without a global duration, each task (`flux submit`) is not constrained to an upper limit.
 
-Here is an example of the spack jobspec above with duration defined for the resource set:
+Here is an example of running one task with a duration of 5 minutes (300 seconds).
 
 ```yaml
 version: 1
-resources:
-  spack:
-    count: 1
-    type: node
-    attributes:
-      duration: 300s
+
+tasks:
+- name: build
+  command: ["spack", "install", "sqlite"]
+  attributes:
+    duration: 300s
+```
+
+Here is an example of multiple tasks, where each has a separate duration.
+
+```yaml
+version: 1
 
 tasks:
 - command: ["spack", "install", "singularity"]
-  resources: spack
+  attributes:
+    duration: 900s
+- name: build
+  command: ["spack", "install", "zlib"]
+  attributes:
+    duration: 300s
+```
+
+And finally, the same two tasks, but put under a group duration
+
+```yaml
+version: 1
+
+groups:
+  - name: spack
+    attributes:
+      duration: 900s
+    tasks:
+    - command: ["spack", "install", "singularity"]
+    - name: build
+      command: ["spack", "install", "zlib"]
 ```
 
 Arguably, a group duration is best used when there is complex logic in the script that deems the total runtime of the individual tasks unknown, and a group duration is more sane to set.
 
-#### Environment
+### Environment
 
-Environment is a set of key value pairs that are also under attributes.
+Environment is a set of key value pairs that are also under attributes. The same rules apply with respect to group (top) level and within-task definitions. This example shows a group environment variable that is over-ridden by a task-level definition.
 
 ```yaml
 version: 1
-resources:
-  spack:
-    count: 1
-    type: node
-    environment:
-      pasta: labasta
 
-tasks:
-- command: ["spack", "install", "singularity"]
-  resources: spack
+groups:
+- name: spack
+  attributes:
+    environment:
+      LD_LIBRARY_PATH: /usr/local/lib:/usr/local/lib64
+
+  tasks:
+  - name: build
+    command: ["spack", "install", "pennant"]
+  - command: ["pennant", "/opt/pennant/test/params.pnt"]
+    depends_on: ["build"]
+    attributes:
+      environment:
+        LD_LIBRARY_PATH: /usr/local/cuda/lib
 ```
 
 Environment variables are always exported at the onset of the task or batch job.
 
-#### Current Working Directory
+**Question**: should these be blocks of stings at the choice of the user for definition / export?
+
+### Current Working Directory
 
 The current working directory is where you expect the job to run. It defaults to your home on the cluster, or in the context of a container environment, where you would expect the WORKDIR to be.
 Here is an example of a set of flat tasks (no groups) with a current working directory set:
 
 ```yaml
 version: 1
-resources:
-  spack:
-    count: 1
-    type: node
-    attributes:
-      cwd: /opt/pennant/test/
-
 tasks:
-- command: ["spack", "install", "singularity"]
-  resources: spack
+- name: build
+  command: ["spack", "install", "pennant"]
+- command: ["pennant", "params.pnt"]
+  depends_on: ["build"]
+  attributes:
+    cwd: /opt/pennant/test/
 ```
 
-#### Additional Flags
+The job above shows the same running logic with pennant, but we are sitting in the directory with the parameter script instead. The same rules apply for the group and task-level definitions under "attributes."
+
+### Additional Flags
 
 Additional flags are attributes that may or may not be supported by different job managers. Here is an example to add `--watch` (or similar) to say you want to submit and stream the output (and block further submits):
 
 ```yaml
 version: 1
-resources:
-  spack:
-    count: 1
-    type: node
-    attributes:
-      watch: true
 
 tasks:
-- command: ["spack", "install", "singularity"]
-  resources: spack
+- command: ["spack", "install", "sqlite"]
+  attributes:
+    watch: true
 ```
 
-### Steps
+## Requires
 
-**Not thought through yet**
+The "requires" section includes compatibility metadata or key value pairs that are provided to a scheduler or image selection process to inform resource needs. Requires is the only metadata that can be provided on the global level, with the implication being that it applies globally to all groups and tasks. The following applies:
+
+- Any specification of "requires" is OPTIONAL.
+- A global "requires" is applied to all groups and tasks across the JobSpec
+- A group "requires" is applied to all tasks in the set.
+- Any task-level "requires" over-rides group or global variables that with the same keys.
+
+The example at the top shows global requires paired with task-level requires.
+
+
+### Steps
 
 Different workload managers have functionality for staging files, or similar tasks. We will try to define these as abstractions called "steps" where common needs (e.g., paths) are defined as variables, and each workload manager has a transformer that takes the variables and writes to the correct logic. A good example with flux is `flux archive`, which previously was called `flux filemap`. We might generalize this to the idea of staging files. We currently support the following steps:
 
@@ -448,12 +485,14 @@ version: 1
 
 resources:
   ml-group:
+    count: 4
     type: node
-    count: 1
     with:
-    - count: 4
-      type: core
-
+     - count: 1
+       type: slot
+       with:
+       - count: 4
+         type: core
   single-node:
     count: 1
     type: node
@@ -521,8 +560,11 @@ resources:
     count: 4
     type: node
     with:
-    - count: 4
-      type: core
+    - count: 1
+      type: slot
+       with:
+       - count: 4
+         type: core
 
   single-node:
     count: 1
@@ -534,11 +576,12 @@ resources:
 
 groups:
   - name: machine-learning
-    resources: machine-learning
+    resources:
+
     tasks:
 
-      # Local means run at the instance level, no flux submit
-      # If the task blocks, it will block the remaining tasks
+    # Local means run at the instance level, no flux submit
+    # If the task blocks, it will block the remaining tasks
     - local: true
       command: kubectl apply -f ./database.yaml
 
@@ -546,16 +589,16 @@ groups:
       resources: single-node
       command: ["sleep", "infinity"]
 
-      # flux batch to launch the generate-data level
-      # TODO we need logic here to say "wait until this finishes"
-      # same for submits
+    # flux batch to launch the generate-data level
+    # TODO we need logic here to say "wait until this finishes"
+    # same for submits
     - group: generate-data
 
-      # This is cleanup before the job exists
+    # This is cleanup before the job exists
     - local: true
       command: kubectl delete -f ./database.yaml
 
-    # this is another flux batch, launched before the end,
+  # this is another flux batch, launched before the end,
   - name: generate-data
     resources: generate-data
     tasks:

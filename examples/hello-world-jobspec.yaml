@@ -1,12 +1,26 @@
 version: 1
-requires:
-  io.archspec:
-    cpu.target: amd64
-
+  
 resources:
-  single-node:
-    count: 1
+  four-cores:  
     type: node
+
+    # The presence of replicas indicates a slot
+    # Any count for node would be ignored (and not required)
+    replicas: 10
+
+    requires:
+      io.archspec:
+        cpu.target: amd64
+
+    with:
+    - type: core
+      count: 4
+    - type: gpu
+      count: 4
+
+      requires:
+        org.opencontainers:
+          gpu.vendor: nvidia
 
 tasks:
 - name: task-1
@@ -18,10 +32,6 @@ tasks:
   resources: single-node
 - name: task-2
   depends_on: ["task-1"]
-
-  # This is an example of a custom "task-level' requires
-  requires:
-    hardware.gpu.available: "yes"
   command:
       - bash
       - -c

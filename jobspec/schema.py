@@ -100,7 +100,7 @@ jobspec_nextgen = {
                         "items": {"type": "string"},
                     },
                     # Custom logic for the transformer
-                    "steps": {"$ref": "#definitions/steps"},
+                    "steps": {"$ref": "#/definitions/steps"},
                 },
             },
         },
@@ -114,7 +114,7 @@ jobspec_nextgen = {
                 "resources": {"type": "string"},
                 "depends_on": {"type": "array", "items": {"type": "string"}},
                 # Tasks for the group
-                "tasks": {"$ref": "#definitions/tasks"},
+                "tasks": {"$ref": "#/definitions/tasks"},
                 "groups": {"type": "array", "items": {"$ref": "#/definitions/group"}},
             },
             "additionalProperties": False,

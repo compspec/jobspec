@@ -45,7 +45,7 @@ jobspec_nextgen = {
             "type": "object",
             "required": ["type"],
             "properties": {
-                "type": {"enum": ["node"]},
+                "type": {"type": "string"},
                 # Count is only required when below a slot
                 "count": {"type": "integer", "minimum": 1},
                 "requires": {

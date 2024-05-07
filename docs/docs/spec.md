@@ -16,8 +16,9 @@ resources:
 
     # The node requires this architecture
     requires:
-      io.archspec:
-        cpu.target: amd64
+    - name: system
+      field: cpu.target
+      match: amd64
 
     # We just want one node with 4 cores
     with:
@@ -33,8 +34,9 @@ resources:
       count: 4
       type: gpu
       requires:
-        org.opencontainers:
-          hardware.gpu.available: "yes"
+      - name: hardware
+        field: gpu.vendor
+        match: nvidia
 
 tasks:
 - name: build
@@ -275,8 +277,7 @@ tasks:
 
 ### Requires
 
-The "requires" section includes compatibility metadata or key value pairs that are provided to a scheduler or image selection process to inform resource needs. Since we need to know the level of the graph to look (for example, a node attribute is different from a GPU one) we place them on the level of the resource definition. Any specification of "requires" is OPTIONAL.
-Here is an example of adding requires to the spack job above.
+The "requires" section includes compatibility metadata or key value pairs that are provided to a scheduler or image selection process to inform resource needs. Since we need to know the level of the graph to look (for example, a node attribute is different from a GPU one) we place them on the level of the resource definition. Any specification of "requires" is OPTIONAL. Requires are also implemented as a list of key value pairs (all strings) to make it easy for serialization into an interface, and parsing by custom match algorithm interfaces. Here is an example of adding requires to the spack job above.
 
 
 ```yaml
@@ -286,8 +287,9 @@ resources:
     count: 4
     type: node
     requires:
-      io.archspec:
-        platform: amd64
+    - name: system
+      field: platform
+      match: amd64
 
 tasks:
 - command: ["spack", "install", "sqlite"]

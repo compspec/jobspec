@@ -5,8 +5,9 @@ resources:
     type: node
     count: 1
     requires:
-      io.archspec:
-        cpu.target: amd64
+     - name: system
+       field: cpu.target
+       value: amd64
 
     with:
     - type: core

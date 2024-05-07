@@ -1,12 +1,12 @@
 version: 1
-requires:
-  io.archspec:
-    cpu.target: amd64
 
 resources:
   single-node:
     count: 1
     type: node
+    requires:
+      io.archspec:
+        cpu.target: amd64
 
 tasks:
 - name: task-1

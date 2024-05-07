@@ -57,7 +57,7 @@ jobspec_nextgen = {
                 "with": {
                     "type": "array",
                     "minItems": 1,
-                    "items": {"type": "resources"},
+                    "items": {"$ref": "#/definitions/resources"},
                 },
             },
         },
@@ -111,9 +111,11 @@ jobspec_nextgen = {
             "properties": {
                 # Name only is needed to reference the group elsewhere
                 "name": {"type": "string"},
+                "resources": {"type": "string"},
                 "depends_on": {"type": "array", "items": {"type": "string"}},
                 # Tasks for the group
                 "tasks": {"$ref": "#definitions/tasks"},
+                "groups": {"type": "array", "items": {"$ref": "#/definitions/group"}},
             },
             "additionalProperties": False,
         },

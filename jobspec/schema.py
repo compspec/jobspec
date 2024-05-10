@@ -28,6 +28,7 @@ jobspec_nextgen = {
         # Tasks are one or more named tasks
         # Tasks are "flux submit" on the level they are defined
         "tasks": {"$ref": "#/definitions/tasks"},
+        "attributes": {"$ref": "#/definitions/attributes"},
         "additionalProperties": False,
     },
     "definitions": {

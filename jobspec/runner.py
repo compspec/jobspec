@@ -2,7 +2,6 @@ import os
 
 # This imports the latest version
 import jobspec.core as js
-import jobspec.defaults as defaults
 import jobspec.steps.runner as step_runner
 
 
@@ -37,22 +36,6 @@ class TransformerBase:
         # by the transformer developer it's not needed, etc.
         name = name or step.name
         cls.steps[name] = step
-
-    def update_settings(self, settings, typ, step):
-        """
-        Update settings, either set or unset
-        """
-        if "name" not in step or "value" not in step:
-            return
-        if not step["key"]:
-            return
-        # This is important for typos, etc.
-        if step["key"] not in defaults.valid_settings:
-            raise ValueError(f"{step['key']} is not a known setting.")
-        if typ == "set":
-            settings[step["key"]] = step["value"]
-        elif typ == "unset" and step["key"] in settings:
-            del settings[step["key"]]
 
     def parse(self, jobspec):
         """

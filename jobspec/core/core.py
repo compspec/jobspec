@@ -1,9 +1,11 @@
+import copy
+
 import jsonschema
 
 import jobspec.schema as schema
 
 from .base import ResourceBase
-from .resources import find_resources
+from .resources import find_resources, to_jobspec
 
 
 class Jobspec(ResourceBase):
@@ -50,6 +52,26 @@ class Resources(ResourceBase):
         flat = {}
         find_resources(flat, self.data, slot)
         return flat
+
+    def to_jobspec(self, slot_name):
+        """
+        Turn the resource into a flux jobspec
+
+        Note this is not currently used - it was too error prone
+        """
+        slot = self.slot or {}
+        label = slot_name or (slot.get("label") or "default")
+
+        # Hold onto the original data so it is not mangled
+        js = copy.deepcopy(self.data)
+
+        # Traverse each section and convert to flux jobspec
+        has_slot = to_jobspec(js, slot_name=label)
+
+        # If we don't have a slot, we have to make a fake one at the top
+        if not has_slot:
+            js = {"type": "slot", "count": 1, "label": label, "with": [js]}
+        return js
 
 
 class Attributes(ResourceBase):

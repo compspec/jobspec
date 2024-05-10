@@ -1,4 +1,4 @@
-__version__ = "0.1.1"
+__version__ = "0.1.11"
 AUTHOR = "Vanessa Sochat"
 AUTHOR_EMAIL = "vsoch@users.noreply.github.com"
 NAME = "jobspec"

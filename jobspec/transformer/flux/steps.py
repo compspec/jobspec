@@ -92,6 +92,7 @@ class JobBase(StepBase):
         slot = resources.flatten_slot()
         nodes = slot.get("node")
         tasks = slot.get("core")
+        gpus = slot.get("gpu")
 
         # Get name, jobspec, depends, etc
         name = self.options.get("name")
@@ -117,6 +118,8 @@ class JobBase(StepBase):
             cmd += ["-N", str(nodes)]
         if tasks:
             cmd += ["-n", str(tasks)]
+        if gpus:
+            cmd += ["-g", str(gpus)]
 
         # Replicas we do with cc
         replicas = task.get("replicas")

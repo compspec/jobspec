@@ -19,7 +19,6 @@ class Jobspec(ResourceBase):
         # This should typically be loaded from jobspec.core
         if not hasattr(self, "schema") or not self.schema:
             self.schema = schema
-        self.filename = filename
         self.data = None
         self.load(filename)
         if validate:

@@ -3,20 +3,22 @@ import copy
 import jsonschema
 
 import jobspec.schema as schema
+from jobspec.logger.generate import generate_name
 
 from .base import ResourceBase
 from .resources import find_resources, to_jobspec
 
 
 class Jobspec(ResourceBase):
-    def __init__(self, filename, validate=True, schema=schema.jobspec_nextgen):
+    def __init__(self, filename, validate=True, name=None, schema=schema.jobspec_nextgen):
         """
         Load in and validate a Jobspec
         """
+        self.name = name or generate_name()
+
         # This should typically be loaded from jobspec.core
         if not hasattr(self, "schema") or not self.schema:
             self.schema = schema
-        self.filename = filename
         self.data = None
         self.load(filename)
         if validate:

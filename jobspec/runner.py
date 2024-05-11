@@ -76,5 +76,4 @@ class TransformerBase:
         This function should be able to load it in some raw format
         and convert into correct directives given the transformer.
         """
-        filename = os.path.abspath(filename)
         return js.Jobspec(filename)

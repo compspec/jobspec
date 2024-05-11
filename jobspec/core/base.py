@@ -43,7 +43,7 @@ class ResourceBase:
 
     def load(self, filename):
         """
-        Load the jobspec
+        Load the jobspec (from file or as string)
         """
         # Case 1: given a raw filename
         if isinstance(filename, str) and os.path.exists(filename):
@@ -57,9 +57,12 @@ class ResourceBase:
         # Case 2: jobspec as dict (that we just want to validate)
         elif isinstance(filename, dict):
             self.data = filename
-        # Case 3: jobspec as string
+        # Case 3: jobspec as string for json or yaml
         else:
-            self.data = json.loads(filename)
+            try:
+                self.data = json.loads(filename)
+            except:
+                self.data = yaml.load(filename)
 
         # Case 4: wtf are you giving me? :X
         if not self.data:

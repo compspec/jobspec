@@ -18,13 +18,10 @@ def new_simple_jobspec(command, nodes=1, name=None, tasks=1, jobspec_version=1):
     if nodes < 1 or tasks < 1:
         raise ValueError("Nodes and tasks for the job must be >= 1")
 
-    resources_name = "task-resources"
-
     # Replicas identifies the slot
     rack_resource = {
         "type": "rack",
         "replicas": 1,
-        "label": name,
         "with": {
             "type": "node",
             "count": nodes,
@@ -38,14 +35,11 @@ def new_simple_jobspec(command, nodes=1, name=None, tasks=1, jobspec_version=1):
     tasks_resources = [
         {
             "command": command,
-            "resources": resources_name,
-            "count": {
-                "per_slot": 1,
-            },
+            "resources": name,
         }
     ]
     return {
         "version": jobspec_version,
-        "resources": {resources_name: rack_resource},
+        "resources": {name: rack_resource},
         "tasks": tasks_resources,
     }

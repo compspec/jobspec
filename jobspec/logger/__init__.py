@@ -1,1 +1,1 @@
-from .logger import logger, setup_logger
+from .logger import logger, setup_logger, LogColors

@@ -22,14 +22,18 @@ def new_simple_jobspec(command, nodes=1, name=None, tasks=1, jobspec_version=1):
     rack_resource = {
         "type": "rack",
         "replicas": 1,
-        "with": {
-            "type": "node",
-            "count": nodes,
-            "with": {
-                "type": "core",
-                "count": tasks,
-            },
-        },
+        "with": [
+            {
+                "type": "node",
+                "count": nodes,
+                "with": [
+                    {
+                        "type": "core",
+                        "count": tasks,
+                    }
+                ],
+            }
+        ],
     }
 
     tasks_resources = [

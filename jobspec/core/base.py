@@ -62,7 +62,7 @@ class ResourceBase:
             try:
                 self.data = json.loads(filename)
             except:
-                self.data = yaml.load(filename)
+                self.data = yaml.load(filename, Loader=yaml.SafeLoader)
 
         # Case 4: wtf are you giving me? :X
         if not self.data:

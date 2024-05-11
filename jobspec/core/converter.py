@@ -38,7 +38,7 @@ def new_simple_jobspec(command, nodes=1, name=None, tasks=1, jobspec_version=1):
     tasks_resources = [
         {
             "command": command,
-            "resources": name,
+            "resources": resources_name,
             "count": {
                 "per_slot": 1,
             },
@@ -46,6 +46,6 @@ def new_simple_jobspec(command, nodes=1, name=None, tasks=1, jobspec_version=1):
     ]
     return {
         "version": jobspec_version,
-        "resources": {resource_name: rack_resource},
+        "resources": {resources_name: rack_resource},
         "tasks": task_resources,
     }

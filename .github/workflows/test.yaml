@@ -37,3 +37,7 @@ jobs:
           flux start jobspec run ./examples/group-with-group.yaml
           flux start jobspec run ./examples/task-with-group.yaml
           flux start python3 ./examples/flux/receive-job.py
+
+          # We don't need flux for satisfies
+          jobspec satisfy ./examples/subsystems/jobspec-spack-subystem-unsatisfied.yaml --subsystem-dir ./examples/subsystems || echo "Correct"
+          jobspec satisfy ./examples/subsystems/jobspec-spack-subystem-satisfied.yaml --subsystem-dir ./examples/subsystems

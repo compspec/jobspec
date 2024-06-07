@@ -6,7 +6,40 @@ A JobSpec consists of one or more tasks that have dependencies. This level of de
 The JobSpec library here reads in the JobSpec and can map that into specific cluster submit commands.
 Here is an example that assumes receiving a Jobspec on a flux cluster.
 
-### 1. Start Flux
+### Satisfy
+
+We are prototyping user-space subsystems, for which we do a satisfy request of a contender jobspec against a directory of user space subsystem files, which each should
+be JGF (json graph format) graphs. While this can be paired with run (to determine if the run should proceed) we provide a separate "satisfy" command to test and prototype the tool.
+We also provide a set of example user subsystems in `examples/subsystems` for each of environment modules and spack. This means we can do satsify requests of jobspecs against the subsystem directory as follows. Here is an example that is satisfied:
+
+```bash
+$ jobspec satisfy ./examples/subsystems/jobspec-spack-subystem-satisfied.yaml --subsystem-dir ./examples/subsystems
+```
+```console
+SELECT name from subsystems WHERE name = 'spack';
+SELECT label from nodes WHERE subsystem = 'spack' AND type = 'package';
+hairy-peanut-butter-6064 OK
+```
+
+And here is one not satisfied:
+
+```bash
+$ jobspec satisfy ./examples/subsystems/jobspec-spack-subystem-unsatisfied.yaml --subsystem-dir ./examples/subsystems
+```
+```console
+SELECT name from subsystems WHERE name = 'spack';
+SELECT label from nodes WHERE subsystem = 'spack' AND type = 'package';
+SELECT * from attributes WHERE name = 'name' AND value = 'lammps' and node IN ('package1','package2023','package2028','package2031','package2043','pac...
+loopy-car-9711 NOT OK
+```
+
+If run from python, the function "satisfied" would return False and the broker could respond appropriately. If you don't provide the `--subsystem-dir` it will default to `~/.compspec/subsystems`, which likely doesn't exist (and you'll get an error). Also note that the subsystem metadata
+is expected to be in JSON and our jobspec files are in yaml, so we can throw them into the same examples directory without issue.
+
+
+### Run
+
+#### 1. Start Flux
 
 Start up the development environment to find yourself in a container with flux. Start a test instance:
 
@@ -32,7 +65,7 @@ Ensure you have jobspec installed! Yes, we are vscode, installing to the contain
 sudo pip install -e .
 ```
 
-### 2. Command Line Examples
+#### 2. Command Line Examples
 
 We are going to run the [examples/hello-world-jobspec.yaml](examples/hello-world-jobspec.yaml). This setup is way overly
 complex for this because we don't actually need to do any staging or special work, but it's an example, so intended to be so.
@@ -70,7 +103,7 @@ jobspec run -t flux ./examples/hello-world-jobspec.yaml
 jobspec run --transformer flux ./examples/hello-world-jobspec.yaml
 ```
 
-### 3. Nested Examples
+#### 3. Nested Examples
 
 Try running some advanced examples. Here is a group within a task.
 
@@ -141,7 +174,7 @@ flux submit --job-name group-2-task-0 --flags=waitable bash -c echo Starting tas
 flux job wait --all
 ```
 
-### 4. Python Examples
+#### 4. Python Examples
 
 It could also be the case that you want something running inside a lead broker instance to receive Jobspecs incrementally and then
 run them. This Python example can help with that by showing how to accomplish the same, but from within Python.

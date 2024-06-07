@@ -53,8 +53,34 @@ def get_parser():
         formatter_class=argparse.RawTextHelpFormatter,
         description="receive and run a jobpsec",
     )
+
+    # This will do the subsystem match before the run
+    # run.add_argument("--subsystem-dir", help="directory with subsystem metadata to load")
     run.add_argument("-t", "--transform", help="transformer to use", default="flux")
-    run.add_argument("jobspec", help="jobspec yaml file", default="jobspec.yaml")
+
+    # This does just the user space subsystem match
+    satisfy = subparsers.add_parser(
+        "satisfy",
+        formatter_class=argparse.RawTextHelpFormatter,
+        description="determine if a jobspec is satisfied by the user subsystem",
+    )
+    satisfy.add_argument(
+        "--subsystem-dir", dest="sdir", help="subsystem directory with JGF to load"
+    )
+
+    # If this is True, we do not allow a satisfy to occur if subsystem metadata is entirely missing
+    # and the jobspec declares it needed
+    satisfy.add_argument(
+        "--require-all",
+        dest="require_all",
+        help="require all subsystems to be present and satisfied.",
+        default=False,
+        action="store_true",
+    )
+
+    for cmd in [run, satisfy]:
+        cmd.add_argument("jobspec", help="jobspec yaml file", default="jobspec.yaml")
+
     return parser
 
 
@@ -97,6 +123,8 @@ def run_jobspec():
     # Here we can assume instantiated to get args
     if args.command == "run":
         from .run import main
+    elif args.command == "satisfy":
+        from .satisfy import main
     else:
         help(1)
     main(args, extra)

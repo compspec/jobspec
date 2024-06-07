@@ -1,0 +1,1047 @@
+{
+    "graph": {
+        "nodes": {
+            "environment-modules0": {
+                "metadata": {
+                    "type": "environment-modules",
+                    "basename": "environment-modules",
+                    "name": "environment-modules0",
+                    "id": 0,
+                    "uniq_id": 0,
+                    "containment": {
+                        "paths": "/environment-modules0"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false
+                },
+                "label": "environment-modules0"
+            },
+            "module1": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module0",
+                    "id": 1,
+                    "uniq_id": 1,
+                    "containment": {
+                        "paths": "/environment-modules0/module0"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "python/intelpython2",
+                        "software": "python"
+                    }
+                },
+                "label": "module1"
+            },
+            "module2": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module1",
+                    "id": 2,
+                    "uniq_id": 2,
+                    "containment": {
+                        "paths": "/environment-modules0/module1"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "python/anaconda3",
+                        "software": "python"
+                    }
+                },
+                "label": "module2"
+            },
+            "module3": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module2",
+                    "id": 3,
+                    "uniq_id": 3,
+                    "containment": {
+                        "paths": "/environment-modules0/module2"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "python/anaconda2",
+                        "software": "python"
+                    }
+                },
+                "label": "module3"
+            },
+            "module4": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module3",
+                    "id": 4,
+                    "uniq_id": 4,
+                    "containment": {
+                        "paths": "/environment-modules0/module3"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "python/intelpython3",
+                        "software": "python"
+                    }
+                },
+                "label": "module4"
+            },
+            "module5": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module4",
+                    "id": 5,
+                    "uniq_id": 5,
+                    "containment": {
+                        "paths": "/environment-modules0/module4"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "python/rh-python36",
+                        "software": "python"
+                    }
+                },
+                "label": "module5"
+            },
+            "module6": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module5",
+                    "id": 6,
+                    "uniq_id": 6,
+                    "containment": {
+                        "paths": "/environment-modules0/module5"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "PrgEnv-intel/2019.1.053",
+                        "software": "PrgEnv-intel",
+                        "version": "2019.1.053"
+                    }
+                },
+                "label": "module6"
+            },
+            "module7": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module6",
+                    "id": 7,
+                    "uniq_id": 7,
+                    "containment": {
+                        "paths": "/environment-modules0/module6"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "PrgEnv-pgi/llvm_18.10",
+                        "software": "PrgEnv-pgi",
+                        "version": "18.10"
+                    }
+                },
+                "label": "module7"
+            },
+            "module8": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module7",
+                    "id": 8,
+                    "uniq_id": 8,
+                    "containment": {
+                        "paths": "/environment-modules0/module7"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "PrgEnv-pgi/18.10",
+                        "software": "PrgEnv-pgi",
+                        "version": "18.10"
+                    }
+                },
+                "label": "module8"
+            },
+            "module9": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module8",
+                    "id": 9,
+                    "uniq_id": 9,
+                    "containment": {
+                        "paths": "/environment-modules0/module8"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_parallel_studio/debugger_2019",
+                        "software": "intel_parallel_studio",
+                        "version": "2019"
+                    }
+                },
+                "label": "module9"
+            },
+            "module10": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module9",
+                    "id": 10,
+                    "uniq_id": 10,
+                    "containment": {
+                        "paths": "/environment-modules0/module9"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_parallel_studio/compilers_2019.1.144",
+                        "software": "intel_parallel_studio",
+                        "version": "2019.1.144"
+                    }
+                },
+                "label": "module10"
+            },
+            "module11": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module10",
+                    "id": 11,
+                    "uniq_id": 11,
+                    "containment": {
+                        "paths": "/environment-modules0/module10"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_parallel_studio/mkl_2019.1.144",
+                        "software": "intel_parallel_studio",
+                        "version": "2019.1.144"
+                    }
+                },
+                "label": "module11"
+            },
+            "module12": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module11",
+                    "id": 12,
+                    "uniq_id": 12,
+                    "containment": {
+                        "paths": "/environment-modules0/module11"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_parallel_studio/advisor_2019.1.0.579143",
+                        "software": "intel_parallel_studio",
+                        "version": "2019.1.0.579143"
+                    }
+                },
+                "label": "module12"
+            },
+            "module13": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module12",
+                    "id": 13,
+                    "uniq_id": 13,
+                    "containment": {
+                        "paths": "/environment-modules0/module12"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_parallel_studio/ipp_2019.1.144",
+                        "software": "intel_parallel_studio",
+                        "version": "2019.1.144"
+                    }
+                },
+                "label": "module13"
+            },
+            "module14": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module13",
+                    "id": 14,
+                    "uniq_id": 14,
+                    "containment": {
+                        "paths": "/environment-modules0/module13"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_parallel_studio/mpi_2019.1.144",
+                        "software": "intel_parallel_studio",
+                        "version": "2019.1.144"
+                    }
+                },
+                "label": "module14"
+            },
+            "module15": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module14",
+                    "id": 15,
+                    "uniq_id": 15,
+                    "containment": {
+                        "paths": "/environment-modules0/module14"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_parallel_studio/tbb_2019.1.144",
+                        "software": "intel_parallel_studio",
+                        "version": "2019.1.144"
+                    }
+                },
+                "label": "module15"
+            },
+            "module16": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module15",
+                    "id": 16,
+                    "uniq_id": 16,
+                    "containment": {
+                        "paths": "/environment-modules0/module15"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_parallel_studio/daal_2019.1.144",
+                        "software": "intel_parallel_studio",
+                        "version": "2019.1.144"
+                    }
+                },
+                "label": "module16"
+            },
+            "module17": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module16",
+                    "id": 17,
+                    "uniq_id": 17,
+                    "containment": {
+                        "paths": "/environment-modules0/module16"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_parallel_studio/itac_2019.1.022",
+                        "software": "intel_parallel_studio",
+                        "version": "2019.1.022"
+                    }
+                },
+                "label": "module17"
+            },
+            "module18": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module17",
+                    "id": 18,
+                    "uniq_id": 18,
+                    "containment": {
+                        "paths": "/environment-modules0/module17"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_parallel_studio/compiler_arch_2019.1.144",
+                        "software": "intel_parallel_studio",
+                        "version": "2019.1.144"
+                    }
+                },
+                "label": "module18"
+            },
+            "module19": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module18",
+                    "id": 19,
+                    "uniq_id": 19,
+                    "containment": {
+                        "paths": "/environment-modules0/module18"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_parallel_studio/intelpython3",
+                        "software": "intel_parallel_studio"
+                    }
+                },
+                "label": "module19"
+            },
+            "module20": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module19",
+                    "id": 20,
+                    "uniq_id": 20,
+                    "containment": {
+                        "paths": "/environment-modules0/module19"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_parallel_studio/clck_2019.0",
+                        "software": "intel_parallel_studio",
+                        "version": "2019.0"
+                    }
+                },
+                "label": "module20"
+            },
+            "module21": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module20",
+                    "id": 21,
+                    "uniq_id": 21,
+                    "containment": {
+                        "paths": "/environment-modules0/module20"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_parallel_studio/inspector_2019.1.0.579146",
+                        "software": "intel_parallel_studio",
+                        "version": "2019.1.0.579146"
+                    }
+                },
+                "label": "module21"
+            },
+            "module22": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module21",
+                    "id": 22,
+                    "uniq_id": 22,
+                    "containment": {
+                        "paths": "/environment-modules0/module21"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_parallel_studio/vtune_amplifier_2019.1.0.579888",
+                        "software": "intel_parallel_studio",
+                        "version": "2019.1.0.579888"
+                    }
+                },
+                "label": "module22"
+            },
+            "module23": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module22",
+                    "id": 23,
+                    "uniq_id": 23,
+                    "containment": {
+                        "paths": "/environment-modules0/module22"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_parallel_studio/pstl_2019.1.144",
+                        "software": "intel_parallel_studio",
+                        "version": "2019.1.144"
+                    }
+                },
+                "label": "module23"
+            },
+            "module24": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module23",
+                    "id": 24,
+                    "uniq_id": 24,
+                    "containment": {
+                        "paths": "/environment-modules0/module23"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_parallel_studio/parallel_studio_xe_2019.1.053",
+                        "software": "intel_parallel_studio",
+                        "version": "2019.1.053"
+                    }
+                },
+                "label": "module24"
+            },
+            "module25": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module24",
+                    "id": 25,
+                    "uniq_id": 25,
+                    "containment": {
+                        "paths": "/environment-modules0/module24"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "mpi/openmpi_2.1.2-pgi-llvm_18.10",
+                        "software": "mpi",
+                        "version": "2.1.2"
+                    }
+                },
+                "label": "module25"
+            },
+            "module26": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module25",
+                    "id": 26,
+                    "uniq_id": 26,
+                    "containment": {
+                        "paths": "/environment-modules0/module25"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "mpi/intel_mpi_2019.1.144",
+                        "software": "mpi",
+                        "version": "2019.1.144"
+                    }
+                },
+                "label": "module26"
+            },
+            "module27": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module26",
+                    "id": 27,
+                    "uniq_id": 27,
+                    "containment": {
+                        "paths": "/environment-modules0/module26"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "mpi/openmpi_2.1.2-pgi_18.10",
+                        "software": "mpi",
+                        "version": "2.1.2"
+                    }
+                },
+                "label": "module27"
+            },
+            "module28": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module27",
+                    "id": 28,
+                    "uniq_id": 28,
+                    "containment": {
+                        "paths": "/environment-modules0/module27"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "cuda/10.0",
+                        "software": "cuda",
+                        "version": "10.0"
+                    }
+                },
+                "label": "module28"
+            },
+            "module29": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module28",
+                    "id": 29,
+                    "uniq_id": 29,
+                    "containment": {
+                        "paths": "/environment-modules0/module28"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "PrgEnv-gcc/7.3.1",
+                        "software": "PrgEnv-gcc",
+                        "version": "7.3.1"
+                    }
+                },
+                "label": "module29"
+            },
+            "module30": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module29",
+                    "id": 30,
+                    "uniq_id": 30,
+                    "containment": {
+                        "paths": "/environment-modules0/module29"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel/2019.1.144",
+                        "software": "intel",
+                        "version": "2019.1.144"
+                    }
+                },
+                "label": "module30"
+            },
+            "module31": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module30",
+                    "id": 31,
+                    "uniq_id": 31,
+                    "containment": {
+                        "paths": "/environment-modules0/module30"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "git/sclo-git25",
+                        "software": "git"
+                    }
+                },
+                "label": "module31"
+            },
+            "module32": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module31",
+                    "id": 32,
+                    "uniq_id": 32,
+                    "containment": {
+                        "paths": "/environment-modules0/module31"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "llvm/5.0.1",
+                        "software": "llvm",
+                        "version": "5.0.1"
+                    }
+                },
+                "label": "module32"
+            },
+            "module33": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module32",
+                    "id": 33,
+                    "uniq_id": 33,
+                    "containment": {
+                        "paths": "/environment-modules0/module32"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "nodejs/10.10.0",
+                        "software": "nodejs",
+                        "version": "10.10.0"
+                    }
+                },
+                "label": "module33"
+            },
+            "module34": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module33",
+                    "id": 34,
+                    "uniq_id": 34,
+                    "containment": {
+                        "paths": "/environment-modules0/module33"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_fpga/17.1",
+                        "software": "intel_fpga",
+                        "version": "17.1"
+                    }
+                },
+                "label": "module34"
+            },
+            "module35": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module34",
+                    "id": 35,
+                    "uniq_id": 35,
+                    "containment": {
+                        "paths": "/environment-modules0/module34"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "intel_fpga/18.1",
+                        "software": "intel_fpga",
+                        "version": "18.1"
+                    }
+                },
+                "label": "module35"
+            },
+            "module36": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module35",
+                    "id": 36,
+                    "uniq_id": 36,
+                    "containment": {
+                        "paths": "/environment-modules0/module35"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "go/go-toolset-7",
+                        "software": "go"
+                    }
+                },
+                "label": "module36"
+            },
+            "module37": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module36",
+                    "id": 37,
+                    "uniq_id": 37,
+                    "containment": {
+                        "paths": "/environment-modules0/module36"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "go/golang",
+                        "software": "go"
+                    }
+                },
+                "label": "module37"
+            },
+            "module38": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module37",
+                    "id": 38,
+                    "uniq_id": 38,
+                    "containment": {
+                        "paths": "/environment-modules0/module37"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "gcc/7.3.1",
+                        "software": "gcc",
+                        "version": "7.3.1"
+                    }
+                },
+                "label": "module38"
+            },
+            "module39": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module38",
+                    "id": 39,
+                    "uniq_id": 39,
+                    "containment": {
+                        "paths": "/environment-modules0/module38"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "julia/1.0.2",
+                        "software": "julia",
+                        "version": "1.0.2"
+                    }
+                },
+                "label": "module39"
+            },
+            "module40": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module39",
+                    "id": 40,
+                    "uniq_id": 40,
+                    "containment": {
+                        "paths": "/environment-modules0/module39"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "pgi/llvm_18.10",
+                        "software": "pgi",
+                        "version": "18.10"
+                    }
+                },
+                "label": "module40"
+            },
+            "module41": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module40",
+                    "id": 41,
+                    "uniq_id": 41,
+                    "containment": {
+                        "paths": "/environment-modules0/module40"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "pgi/18.10",
+                        "software": "pgi",
+                        "version": "18.10"
+                    }
+                },
+                "label": "module41"
+            },
+            "module42": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module41",
+                    "id": 42,
+                    "uniq_id": 42,
+                    "containment": {
+                        "paths": "/environment-modules0/module41"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "dot",
+                        "software": "dot"
+                    }
+                },
+                "label": "module42"
+            },
+            "module43": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module42",
+                    "id": 43,
+                    "uniq_id": 43,
+                    "containment": {
+                        "paths": "/environment-modules0/module42"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "module-info",
+                        "software": "module-info"
+                    }
+                },
+                "label": "module43"
+            },
+            "module44": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module43",
+                    "id": 44,
+                    "uniq_id": 44,
+                    "containment": {
+                        "paths": "/environment-modules0/module43"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "modules",
+                        "software": "modules",
+                        "version": "5.4.0"
+                    }
+                },
+                "label": "module44"
+            },
+            "module45": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module44",
+                    "id": 45,
+                    "uniq_id": 45,
+                    "containment": {
+                        "paths": "/environment-modules0/module44"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "module-git",
+                        "software": "module-git"
+                    }
+                },
+                "label": "module45"
+            },
+            "module46": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module45",
+                    "id": 46,
+                    "uniq_id": 46,
+                    "containment": {
+                        "paths": "/environment-modules0/module45"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "use.own",
+                        "software": "use.own"
+                    }
+                },
+                "label": "module46"
+            },
+            "module47": {
+                "metadata": {
+                    "type": "module",
+                    "basename": "module",
+                    "name": "module46",
+                    "id": 47,
+                    "uniq_id": 47,
+                    "containment": {
+                        "paths": "/environment-modules0/module46"
+                    },
+                    "size": 1,
+                    "unit": "",
+                    "rank": 0,
+                    "exclusive": false,
+                    "attributes": {
+                        "name": "null",
+                        "software": "null"
+                    }
+                },
+                "label": "module47"
+            }
+        },
+        "edges": []
+    },
+    "metadata": {
+        "install_name": "compat-experiment"
+    }
+}

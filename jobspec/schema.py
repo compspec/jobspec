@@ -17,8 +17,13 @@ jobspec_nextgen = {
             "enum": [1],
         },
         "requires": {
-            "type": "array",
-            "items": {"type": "object"},
+            "type": "object",
+            "patternProperties": {
+                "^([a-z]|[|]|&|[0-9]+)+$": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                },
+            },
         },
         "resources": {
             "type": "object",

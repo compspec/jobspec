@@ -2,6 +2,7 @@ import os
 import sqlite3
 
 import jobspec.core as core
+import jobspec.subsystem.queries as queries
 import jobspec.utils as utils
 from jobspec.logger import LogColors, logger
 
@@ -41,26 +42,9 @@ class SubsystemRegistry:
         # them for anything - we are going to parse them
         # into node attributes instead.
         create_sql = [
-            """
-        CREATE TABLE subsystems (
-           name TEXT PRIMARY KEY NOT NULL
-        );""",
-            """CREATE TABLE nodes (
-          subsystem TEXT NOT NULL,
-          label TEXT NOT NULL,
-          type TEXT NOT NULL,
-          basename TEXT NOT NULL,
-          name TEXT NOT NULL,
-          id INTEGER NOT NULL,
-   		  FOREIGN KEY(subsystem) REFERENCES subsystems(name),
-          UNIQUE (subsystem, label)
-        );""",
-            """CREATE TABLE attributes (
-          name TEXT NOT NULL,
-          value TEXT NOT NULL,
-          node TEXT NOT NULL,
-  		  FOREIGN KEY(node) REFERENCES nodes(label)
-        );""",
+            queries.create_subsystem_sql,
+            queries.create_nodes_sql,
+            queries.create_attributes_sql,
         ]
         for sql in create_sql:
             cursor.execute(sql)

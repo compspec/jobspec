@@ -81,7 +81,84 @@ tasks:
   command: ["/bin/bash", "job.sh"]
 ```
 
-This above assumes a shared filesystem.
+This above assumes a shared filesystem. In addition to steps and the obvious command or depends on, tasks can have references to [resources](#resources), [requires](#requires), and [groups](#groups), discussed below.
+
+
+### Steps
+
+**Not thought through yet**
+
+Different workload managers have functionality for staging files, or similar tasks. We will try to define these as abstractions called "steps" where common needs (e.g., paths) are defined as variables, and each workload manager has a transformer that takes the variables and writes to the correct logic. A good example with flux is `flux archive`, which previously was called `flux filemap`. We might generalize this to the idea of staging files. We currently support the following steps:
+
+| Name   | Description |
+|--------|-------------|
+| stage  | stage files or directories |
+
+We hope to add these minimally, and only choosing ones that might be supported across environments or workload managers.
+
+#### Stage
+
+By default, the JobSpec doesn't know anything about having a shared filesystem or not. In the case of not, you might need to stage files, or ensure they are present across nodes before running any task. Here is what a staging task for a directory might look like:
+
+```yaml
+tasks:
+- name: setup
+  steps:
+    - name: stage
+      path: /tmp/path-for-workflow
+```
+
+or a file:
+
+```yaml
+- name: setup
+  steps:
+    - name: stage
+      path: /home/dinosaur/kubeconfig
+```
+
+
+If we were to write this out with a task (with flux commands) it might look like this:
+
+```yaml
+- name: root
+  command:
+    - /bin/bash
+    - -c
+    - flux archive create -n kubeconfig -C ./home/dinosaur kubeconfig
+    - flux -r all -x 0 flux exec flux archive get -n kubeconfig -C ./home/dinosaur
+```
+
+Instead of doing the above, we use the abstraction, and the underlying transformer does the translation. This means that different cluster transformers would parse the jobspec, and convert that into whatever their filemap/archive command is. We would likely have similar, abstract workload manager steps.
+
+## Requires
+
+The "requires" section (on the top level) includes user-level subsystem requirements for the JobSpec, which might include (but are not limited to) software, network, or I/O. This metadata will be discovered typically in the user home as separate JGF files (one per user subsystem) under `~/.compspec/subsystems`. The requires section, akin to resources, includes named groups of subsystem requirements that can be referenced in tasks. For example:
+
+```yaml
+requires:
+  spack-software:
+    - name: spack      # subsystem name
+      field: type      # field in metadata
+      match: package   # this is a spack package node
+      attribute: name  # These would be new - for the "attributes" section of the JGF
+      value: lammps
+
+  module-software:
+    - name: environment-modules
+      field: type
+      match: module
+      attribute: software
+      value: lammps
+
+tasks:
+- name: build
+  command: ["spack", "install", "ior"]
+  resources: spack-build
+  requires: spack-software|module-software
+```
+
+The above is referencing a [spack user subsystem](https://gist.github.com/vsoch/af1c57b558a476d1bb67fd78b284677e#file-spack-subsystem-json-L35-L43) and an [environment module](https://gist.github.com/vsoch/adba1cd620fb8280006e1533a3ab9928) user subsystem that are only accessible to the user that submits or owns the JobSpec. The library here, JobSpec Next Generation, will do a small satisfy check against the JobSpec and the user subsystems to inform the final selection.
 
 ## Groups
 
@@ -277,7 +354,7 @@ tasks:
 
 ### Requires
 
-The "requires" section includes compatibility metadata or key value pairs that are provided to a scheduler or image selection process to inform resource needs. Since we need to know the level of the graph to look (for example, a node attribute is different from a GPU one) we place them on the level of the resource definition. Any specification of "requires" is OPTIONAL. Requires are also implemented as a list of key value pairs (all strings) to make it easy for serialization into an interface, and parsing by custom match algorithm interfaces. Here is an example of adding requires to the spack job above.
+The "requires" section (on the level of a resource) includes compatibility metadata or key value pairs that are provided to a scheduler or image selection process to inform resource needs. Since we need to know the level of the graph to look (for example, a node attribute is different from a GPU one) we place them on the level of the resource definition. Any specification of "requires" is OPTIONAL. Requires are also implemented as a list of key value pairs (all strings) to make it easy for serialization into an interface, and parsing by custom match algorithm interfaces. Here is an example of adding requires to the spack job above.
 
 
 ```yaml
@@ -389,53 +466,6 @@ tasks:
 - command: ["spack", "install", "singularity"]
   resources: spack
 ```
-
-### Steps
-
-**Not thought through yet**
-
-Different workload managers have functionality for staging files, or similar tasks. We will try to define these as abstractions called "steps" where common needs (e.g., paths) are defined as variables, and each workload manager has a transformer that takes the variables and writes to the correct logic. A good example with flux is `flux archive`, which previously was called `flux filemap`. We might generalize this to the idea of staging files. We currently support the following steps:
-
-| Name   | Description |
-|--------|-------------|
-| stage  | stage files or directories |
-
-We hope to add these minimally, and only choosing ones that might be supported across environments or workload managers.
-
-#### Stage
-
-By default, the JobSpec doesn't know anything about having a shared filesystem or not. In the case of not, you might need to stage files, or ensure they are present across nodes before running any task. Here is what a staging task for a directory might look like:
-
-```yaml
-tasks:
-- name: setup
-  steps:
-    - name: stage
-      path: /tmp/path-for-workflow
-```
-
-or a file:
-
-```yaml
-- name: setup
-  steps:
-    - name: stage
-      path: /home/dinosaur/kubeconfig
-```
-
-
-If we were to write this out with a task (with flux commands) it might look like this:
-
-```yaml
-- name: root
-  command:
-    - /bin/bash
-    - -c
-    - flux archive create -n kubeconfig -C ./home/dinosaur kubeconfig
-    - flux -r all -x 0 flux exec flux archive get -n kubeconfig -C ./home/dinosaur
-```
-
-Instead of doing the above, we use the abstraction, and the underlying transformer does the translation. This means that different cluster transformers would parse the jobspec, and convert that into whatever their filemap/archive command is. We would likely have similar, abstract workload manager steps.
 
 ## Support for Services
 

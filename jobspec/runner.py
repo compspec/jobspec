@@ -1,5 +1,3 @@
-import os
-
 # This imports the latest version
 import jobspec.core as js
 import jobspec.steps.runner as step_runner

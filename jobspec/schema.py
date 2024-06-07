@@ -16,6 +16,15 @@ jobspec_nextgen = {
             "type": "integer",
             "enum": [1],
         },
+        "requires": {
+            "type": "object",
+            "patternProperties": {
+                "^([a-z]|[|]|&|[0-9]+)+$": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                },
+            },
+        },
         "resources": {
             "type": "object",
             "patternProperties": {
@@ -28,6 +37,7 @@ jobspec_nextgen = {
         # Tasks are one or more named tasks
         # Tasks are "flux submit" on the level they are defined
         "tasks": {"$ref": "#/definitions/tasks"},
+        # Attributes can eventually be given to the jobs
         "attributes": {"$ref": "#/definitions/attributes"},
         "additionalProperties": False,
     },
@@ -89,6 +99,9 @@ jobspec_nextgen = {
                     "group": {"type": "string"},
                     # If the task is run locally on the level it is currently at.
                     "local": {"type": "boolean"},
+                    # Requires is a reference to one or more requirement blocks
+                    # For example, users space subsystems
+                    "requires": {"type": "string"},
                     # Name only is needed to reference the task elsewhere
                     "name": {"type": "string"},
                     "depends_on": {"type": "array", "items": {"type": "string"}},

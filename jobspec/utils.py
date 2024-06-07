@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 import tempfile
 from contextlib import contextmanager
@@ -21,6 +22,22 @@ def read_file(filename):
     with open(filename, "r") as fd:
         content = fd.read()
     return content
+
+
+def recursive_find(base, pattern="[.]py"):
+    """recursive find will yield python files in all directory levels
+    below a base path.
+
+    Arguments:
+      - base (str) : the base directory to search
+      - pattern: a pattern to match, defaults to *.py
+    """
+    for root, _, filenames in os.walk(base):
+        for filename in filenames:
+            filepath = os.path.join(root, filename)
+            if not re.search(pattern, filepath):
+                continue
+            yield filepath
 
 
 def get_tmpfile(tmpdir=None, prefix=""):

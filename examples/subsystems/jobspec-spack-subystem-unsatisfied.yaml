@@ -1,0 +1,30 @@
+version: 1
+requires:
+  spack-software: 
+  - name: spack      # subsystem name
+    field: type      # field in metadata
+    match: package   # this is a spack package node
+    attribute: name  # These would be new - for the "attributes" section of the JGF
+    value: lammps
+  
+resources:
+  sleep-resources:  
+    type: node
+    count: 1
+    requires:
+     - name: system
+       field: cpu.target
+       value: amd64
+
+    with:
+    - type: core
+      count: 4
+
+tasks:
+- name: task-1
+  command:
+    - bash
+    - -c
+    - "echo Starting task 1; sleep 3; echo Finishing task 1"
+  resources: sleep-resources
+  requires: spack-software

@@ -77,6 +77,20 @@ class JobBase(StepBase):
         if os.path.exists(filename):
             os.remove(filename)
 
+    def write_job_script(self, command):
+        """
+        Given a bash, shell, or python command, write
+        into a script.
+        """
+        match = re.match("#!/bin/(?P<executable>bash|sh|python)", command)
+        terms = match.groupdict()
+        tmpfile = utils.get_tmpfile(prefix="jobscript-")
+
+        # Clean up (activate later)
+        command += f"\n#rm -rf {tmpfile}"
+        utils.write_file(command, tmpfile)
+        return [terms["executable", tmpfile]]
+
     def prepare(self, command=None, waitable=False):
         """
         Return the command, without flux submit|batch
@@ -143,13 +157,7 @@ class JobBase(StepBase):
 
         # Case 1: we are given a script to write
         if isinstance(command, str) and re.search("#!/bin/(bash|sh|python)", command):
-            match = re.match("#!/bin/(?P<executable>bash|sh|python)", command)
-            terms = match.groupdict()
-            tmpfile = utils.get_tmpfile(prefix="jobscript-")
-            # Clean up (activate later)
-            command += f"\n#rm -rf {tmpfile}"
-            utils.write_file(command, tmpfile)
-            command = [terms["executable", tmpfile]]
+            command = self.write_job_script(command)
 
         # String that should be a list
         if isinstance(command, str):

@@ -83,10 +83,8 @@ class JobBase(StepBase):
 
         # We can get the resources from options
         resources = self.options.get("resources")
-
-        # These aren't used yet - they need to go into flux
-        attributes = self.options.get("attributes") or {}
         task = self.options.get("task") or {}
+        attributes = task.get("attributes") or {}
 
         # This flattens to be what we ask flux for
         slot = resources.flatten_slot()
@@ -101,9 +99,10 @@ class JobBase(StepBase):
         watch = attributes.get("watch")
 
         # Environment
-        for key, value in attributes.get("environment") or {}:
+        for key, value in attributes.get("environment", {}).items():
             cmd += [f"--env={key}={value}"]
 
+        print(cmd)
         # Note that you need to install our frobnicator plugin
         # for this to work. See the examples/depends_on directory
         for depends_on in task.get("depends_on") or []:
@@ -270,7 +269,8 @@ class submit(JobBase):
         cmd = self.generate_command()
 
         # Are we watching?
-        attributes = self.options.get("attributes") or {}
+        task = self.options.get("task") or {}
+        attributes = task.get("attributes") or {}
         watch = attributes.get("watch")
         res = utils.run_command(cmd, check_output=True, stream=watch)
 

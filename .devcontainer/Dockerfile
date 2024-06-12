@@ -12,6 +12,10 @@ ENV USER_GID=${USER_GID}
 USER root
 RUN apt-get update && apt-get install -y less python3-pip
 
+# "Install" the frobnicator plugin
+RUN wget https://raw.githubusercontent.com/researchapps/flux-core/add-dependency-frob-plugin/src/bindings/python/flux/job/frobnicator/plugins/dependency.py && \
+    mv dependency.py /usr/lib/python3.10/site-packages/flux/job/frobnicator/plugins/
+
 # Add the group and user that match our ids
 RUN groupadd -g ${USER_GID} ${USERNAME} && \
     adduser --disabled-password --uid ${USER_UID} --gid ${USER_GID} --gecos "" ${USERNAME} && \

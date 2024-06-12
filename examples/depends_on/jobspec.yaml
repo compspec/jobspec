@@ -1,14 +1,11 @@
 version: 1
-  
+
+# This is the same example as hello-world-jobspec.yaml
+# But without the slot
 resources:
   sleep-resources:  
     type: node
     count: 1
-    requires:
-     - name: system
-       field: cpu.target
-       value: amd64
-
     with:
     - type: core
       count: 4
@@ -18,10 +15,11 @@ tasks:
   command:
     - bash
     - -c
-    - "echo Starting task 1; sleep 3; echo Finishing task 1"
+    - "echo Starting task 1; sleep 60; echo Finishing task 1"
 
   resources: sleep-resources
 - name: task-2
+  depends_on: ["task-1"]
   command:
       - bash
       - -c

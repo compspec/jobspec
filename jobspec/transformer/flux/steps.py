@@ -82,6 +82,7 @@ class JobBase(StepBase):
         Given a bash, shell, or python command, write
         into a script.
         """
+        command = command.strip()
         match = re.match("#!/bin/(?P<executable>bash|sh|python)", command)
         terms = match.groupdict()
         tmpfile = utils.get_tmpfile(prefix="jobscript-")

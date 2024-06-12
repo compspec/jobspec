@@ -100,10 +100,10 @@ class JobBase(StepBase):
         cwd = attributes.get("cwd")
         watch = attributes.get("watch")
 
-        # We can't support this yet because it needs the jobid
-        # That design to require to get it seems fragile
-        # for depends_on in task.get("depends_on") or []:
-        #    cmd += [f"--dependency={depends_on}"]
+        # Note that you need to install our frobnicator plugin
+        # for this to work. See the examples/depends_on directory
+        for depends_on in task.get("depends_on") or []:
+            cmd += [f"--setattr=dependency.name={depends_on}"]
 
         if cwd is not None:
             cmd += ["--cwd", cwd]

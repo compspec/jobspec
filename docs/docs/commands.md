@@ -192,4 +192,11 @@ Just for fun (posterity) I briefly tried having emoji here:
 
 ![assets/img/emoji.png](assets/img/emoji.png)
 
+
+#### 4. Depends On
+
+We have support for depends on, but it requires a custom frobnicator plugin to create a dependency based on job name. You
+can see the small tutorial [here](https://github.com/compspec/jobspec/tree/main/examples/depends_on) where you can run the entire thing in the VSCode developer environment.
+
+
 [home](/README.md#jobspec)

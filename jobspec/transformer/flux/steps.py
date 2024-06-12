@@ -87,8 +87,8 @@ class JobBase(StepBase):
         terms = match.groupdict()
         tmpfile = utils.get_tmpfile(prefix="jobscript-", suffix=".sh")
 
-        # Clean self up
-        command += f"\nrm -rf {tmpfile}"
+        # Clean self up (commented out because makes me nervous)
+        command += f"\n# rm -rf {tmpfile}"
         utils.write_file(command, tmpfile)
         return [terms["executable"], tmpfile]
 

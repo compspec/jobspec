@@ -90,7 +90,7 @@ class JobBase(StepBase):
         # Clean up (activate later)
         command += f"\n#rm -rf {tmpfile}"
         utils.write_file(command, tmpfile)
-        return [terms["executable", tmpfile]]
+        return [terms["executable"], tmpfile]
 
     def prepare(self, command=None, waitable=False):
         """

@@ -22,7 +22,6 @@ tasks:
 
   resources: sleep-resources
 - name: task-2
-  depends_on: ["task-1"]
   command:
       - bash
       - -c

@@ -9,7 +9,6 @@ resources:
 
 groups:
 - name: task-2
-  depends_on: ["task-1"]
   resources: common
   tasks:
     - command:

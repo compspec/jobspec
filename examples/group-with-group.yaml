@@ -18,7 +18,6 @@ groups:
     - group: group-2
 
 - name: group-2
-  depends_on: ["group-1"]
   resources: common
   tasks:
     - command:

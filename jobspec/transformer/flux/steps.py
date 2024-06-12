@@ -1,6 +1,8 @@
 import copy
 import json
 import os
+import re
+import shlex
 import uuid
 
 import jobspec.utils as utils
@@ -75,6 +77,21 @@ class JobBase(StepBase):
         if os.path.exists(filename):
             os.remove(filename)
 
+    def write_job_script(self, command):
+        """
+        Given a bash, shell, or python command, write
+        into a script.
+        """
+        command = command.strip()
+        match = re.match("#!/bin/(?P<executable>bash|sh|python)", command)
+        terms = match.groupdict()
+        tmpfile = utils.get_tmpfile(prefix="jobscript-", suffix=".sh")
+
+        # Clean self up (commented out because makes me nervous)
+        command += f"\n# rm -rf {tmpfile}"
+        utils.write_file(command, tmpfile)
+        return [terms["executable"], tmpfile]
+
     def prepare(self, command=None, waitable=False):
         """
         Return the command, without flux submit|batch
@@ -83,10 +100,8 @@ class JobBase(StepBase):
 
         # We can get the resources from options
         resources = self.options.get("resources")
-
-        # These aren't used yet - they need to go into flux
-        attributes = self.options.get("attributes") or {}
         task = self.options.get("task") or {}
+        attributes = task.get("attributes") or {}
 
         # This flattens to be what we ask flux for
         slot = resources.flatten_slot()
@@ -99,6 +114,10 @@ class JobBase(StepBase):
         duration = attributes.get("duration")
         cwd = attributes.get("cwd")
         watch = attributes.get("watch")
+
+        # Environment
+        for key, value in attributes.get("environment", {}).items():
+            cmd += [f"--env={key}={value}"]
 
         # Note that you need to install our frobnicator plugin
         # for this to work. See the examples/depends_on directory
@@ -135,8 +154,15 @@ class JobBase(StepBase):
         # Right now assume command is required
         if not command:
             command = task["command"]
+
+        # Case 1: we are given a script to write
+        if isinstance(command, str) and re.search("#!/bin/(bash|sh|python)", command):
+            command = self.write_job_script(command)
+
+        # String that should be a list
         if isinstance(command, str):
-            command = [command]
+            command = shlex.split(command)
+
         cmd += command
         return cmd
 
@@ -266,7 +292,8 @@ class submit(JobBase):
         cmd = self.generate_command()
 
         # Are we watching?
-        attributes = self.options.get("attributes") or {}
+        task = self.options.get("task") or {}
+        attributes = task.get("attributes") or {}
         watch = attributes.get("watch")
         res = utils.run_command(cmd, check_output=True, stream=watch)
 

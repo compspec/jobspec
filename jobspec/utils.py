@@ -40,7 +40,7 @@ def recursive_find(base, pattern="[.]py"):
             yield filepath
 
 
-def get_tmpfile(tmpdir=None, prefix=""):
+def get_tmpfile(tmpdir=None, prefix="", suffix=None):
     """
     Get a temporary file with an optional prefix.
     """
@@ -51,7 +51,7 @@ def get_tmpfile(tmpdir=None, prefix=""):
     if tmpdir:
         prefix = os.path.join(tmpdir, os.path.basename(prefix))
 
-    fd, tmp_file = tempfile.mkstemp(prefix=prefix)
+    fd, tmp_file = tempfile.mkstemp(prefix=prefix, suffix=suffix)
     os.close(fd)
 
     return tmp_file
@@ -62,7 +62,7 @@ def get_tmpdir(tmpdir=None, prefix="", create=True):
     Get a temporary directory for an operation.
     """
     tmpdir = tmpdir or tempfile.gettempdir()
-    prefix = prefix or "jobspec-"
+    prefix = prefix or "jobspec"
     prefix = "%s.%s" % (prefix, next(tempfile._get_candidate_names()))
     tmpdir = os.path.join(tmpdir, prefix)
 
@@ -120,7 +120,7 @@ def run_command(cmd, stream=False, check_output=False, return_code=0):
     If check_output is True, check against an expected return code.
     """
     stdout = subprocess.PIPE if not stream else None
-    output = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=stdout)
+    output = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=stdout, env=os.environ.copy())
     t = output.communicate()[0], output.returncode
     output = {"message": t[0], "return_code": t[1]}
 

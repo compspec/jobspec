@@ -10,7 +10,7 @@ Here is an example that assumes receiving a Jobspec on a flux cluster.
 
 We are prototyping user-space subsystems, for which we do a satisfy request of a contender jobspec against a directory of user space subsystem files, which each should
 be JGF (json graph format) graphs. While this can be paired with run (to determine if the run should proceed) we provide a separate "satisfy" command to test and prototype the tool.
-We also provide a set of example user subsystems in `examples/subsystems` for each of environment modules and spack. This means we can do satsify requests of jobspecs against the subsystem directory as follows. Here is an example that is satisfied:
+We also provide a set of example user subsystems in `examples/subsystems` for each of environment modules and spack. This means we can do satisfy requests of jobspecs against the subsystem directory as follows. Here is an example that is satisfied:
 
 ```bash
 $ jobspec satisfy ./examples/subsystems/jobspec-spack-subystem-satisfied.yaml --subsystem-dir ./examples/subsystems

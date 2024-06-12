@@ -1,6 +1,8 @@
 import copy
 import json
 import os
+import re
+import shlex
 import uuid
 
 import jobspec.utils as utils
@@ -138,8 +140,21 @@ class JobBase(StepBase):
         # Right now assume command is required
         if not command:
             command = task["command"]
+
+        # Case 1: we are given a script to write
+        if isinstance(command, str) and re.search("#!/bin/(bash|sh|python)", command):
+            match = re.match("#!/bin/(?P<executable>bash|sh|python)", command)
+            terms = match.groupdict()
+            tmpfile = utils.get_tmpfile(prefix="jobscript-")
+            # Clean up (activate later)
+            command += f"\n#rm -rf {tmpfile}"
+            utils.write_file(command, tmpfile)
+            command = [terms["executable", tmpfile]]
+
+        # String that should be a list
         if isinstance(command, str):
-            command = [command]
+            command = shlex.split(command)
+
         cmd += command
         return cmd
 

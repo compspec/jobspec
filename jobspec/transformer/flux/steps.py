@@ -100,6 +100,10 @@ class JobBase(StepBase):
         cwd = attributes.get("cwd")
         watch = attributes.get("watch")
 
+        # Environment
+        for key, value in attributes.get("environment") or {}:
+            cmd += [f"--env={key}={value}"]
+
         # Note that you need to install our frobnicator plugin
         # for this to work. See the examples/depends_on directory
         for depends_on in task.get("depends_on") or []:

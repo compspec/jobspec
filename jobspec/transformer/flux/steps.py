@@ -85,10 +85,10 @@ class JobBase(StepBase):
         command = command.strip()
         match = re.match("#!/bin/(?P<executable>bash|sh|python)", command)
         terms = match.groupdict()
-        tmpfile = utils.get_tmpfile(prefix="jobscript-")
+        tmpfile = utils.get_tmpfile(prefix="jobscript-", suffix=".sh")
 
-        # Clean up (activate later)
-        command += f"\n#rm -rf {tmpfile}"
+        # Clean self up
+        command += f"\nrm -rf {tmpfile}"
         utils.write_file(command, tmpfile)
         return [terms["executable"], tmpfile]
 
@@ -119,7 +119,6 @@ class JobBase(StepBase):
         for key, value in attributes.get("environment", {}).items():
             cmd += [f"--env={key}={value}"]
 
-        print(cmd)
         # Note that you need to install our frobnicator plugin
         # for this to work. See the examples/depends_on directory
         for depends_on in task.get("depends_on") or []:

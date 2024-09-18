@@ -3,6 +3,7 @@
 > Translation layer for a jobspec specification to cluster execution
 
 [![PyPI version](https://badge.fury.io/py/jobspec.svg)](https://badge.fury.io/py/jobspec)
+[![DOI](https://zenodo.org/badge/773568660.svg)](https://zenodo.org/doi/10.5281/zenodo.13787066)
 
 ![https://github.com/compspec/jobspec/blob/main/img/jobspec-bot.png?raw=true](https://github.com/compspec/jobspec/blob/main/img/jobspec-bot.png?raw=true)
 

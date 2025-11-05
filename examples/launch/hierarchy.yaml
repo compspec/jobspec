@@ -1,0 +1,44 @@
+version: 2
+
+# The entrypoint is where to start the hierarchy.
+entrypoint: level-1
+
+# Groups are templates for a level in the hierarchy.
+groups:
+  # Each of these are intermediate groups - they only exist to launch children.
+  - name: level-1
+    resources: level1
+    launch:
+      - group: level-2
+        count: 2  # Launch 2 instances of level-2
+
+  - name: level-2
+    resources: level2
+    launch:
+      - group: level-3
+        count: 2  # Each level-2 instance launches 2 instances of level-3
+
+  - name: level-3
+    resources: level3
+    launch:
+      - group: level-4
+        count: 2  # Each level-3 instance launches 2 instances of level-4
+
+  # This is a leaf group. No launch section == start a broker!
+  - name: level-4
+    resources: level4
+
+# These are nested resources. If we have 8 at the top, we have to split that up
+resources:
+  level1: # Consumed by the single level-1 broker
+    count: 8
+    type: core
+  level2: # Consumed by each of the two level-2 brokers
+    count: 4
+    type: core
+  level3: # Consumed by each of the four level-3 brokers
+    count: 2
+    type: core
+  level4: # Consumed by each of the eight level-4 leaf brokers
+    count: 1
+    type: core

@@ -57,15 +57,21 @@ class TransformerBase:
         """
         # Load the jobspec
         jobspec = self.load_jobspec(filename)
+        print(jobspec.data)
 
         # Get validated transformation steps
         # These will depend on the transformer logic
         steps = self.parse(jobspec)
+        print(jobspec.data)
         self.announce()
 
         # Run each step to submit the job, and that's it.
         for step in steps:
             step_runner.run(self.name, step)
+        print("POST RUN")
+        import IPython
+
+        IPython.embed()
 
     def load_jobspec(self, filename):
         """

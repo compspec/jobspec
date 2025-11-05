@@ -106,7 +106,8 @@ class JobBase(StepBase):
         # This flattens to be what we ask flux for
         slot = resources.flatten_slot()
         nodes = slot.get("node")
-        tasks = slot.get("core")
+        cores = slot.get("core")
+        tasks = slot.get("tasks")
         gpus = slot.get("gpu")
 
         # Get name, jobspec, depends, etc
@@ -137,6 +138,8 @@ class JobBase(StepBase):
             cmd += ["-N", str(nodes)]
         if tasks:
             cmd += ["-n", str(tasks)]
+        if cores:
+            cmd += ["-c", str(cores)]
         if gpus:
             cmd += ["-g", str(gpus)]
 
@@ -190,6 +193,10 @@ class batch(JobBase):
         """
         Generate the batch script.
         """
+        # TODO STOPPED HERE - run this with ipython and decide how to proceed.
+        # we need the content of the batch to expand out to run / start
+        # some number of childrne. We can either do htat here or have
+        # a different "kind" of batch...
         data = copy.deepcopy(script_prefix)
         for task in self.tasks:
             if task.name == "batch":
@@ -267,7 +274,8 @@ class batch(JobBase):
         result.add_debug_line(" ".join(cmd))
 
         # Cleanup the files
-        self.cleanup(tmpfile)
+        print(f"RUNNING {self.name}->{tmpfile}")
+        # self.cleanup(tmpfile)
         return result
 
 
@@ -289,6 +297,51 @@ class submit(JobBase):
 
         The python bindings are giving me weird errors.
         """
+        cmd = self.generate_command()
+
+        # Are we watching?
+        task = self.options.get("task") or {}
+        attributes = task.get("attributes") or {}
+        watch = attributes.get("watch")
+        res = utils.run_command(cmd, check_output=True, stream=watch)
+
+        # Prepare a result to return
+        result = Result()
+
+        # Return results to print
+        if not watch:
+            result.out = res["message"].strip()
+        result.add_debug_line(" ".join(cmd))
+        return result
+
+
+class broker(JobBase):
+    name = "broker"
+
+    def generate_command(self, *args, **kwargs):
+        """
+        Convenience function to generate the command.
+        """
+        # Get the URI from options
+        uri = self.options["uri"]
+
+        # Keep the broker running for an interactive hierarchy
+        cmd = ["sleep", "infinity"]
+
+        # Assume on the same filesystem (local) for now
+        # TODO add resources? We assume we start at broker at this level
+        return ["flux", "broker", "-S", f"local-uri=local://{uri}"] + cmd
+
+    def run(self, *args, **kwargs):
+        """
+        Run the submit step.
+
+        The python bindings are giving me weird errors.
+        """
+        print("BROKER RUN")
+        import IPython
+
+        IPython.embed()
         cmd = self.generate_command()
 
         # Are we watching?

@@ -24,6 +24,14 @@ def read_file(filename):
     return content
 
 
+def write_json(obj, filename):
+    """
+    Write json to file.
+    """
+    with open(filename, "w") as f:
+        json.dump(obj, f, indent=2)
+
+
 def recursive_find(base, pattern="[.]py"):
     """recursive find will yield python files in all directory levels
     below a base path.
@@ -81,12 +89,14 @@ def read_yaml(filename):
     return content
 
 
-def write_file(content, filename):
+def write_file(content, filename, executable=False):
     """
     Write content to file
     """
     with open(filename, "w") as fd:
         fd.write(content)
+    if executable:
+        os.chmod(filename, 0o755)
 
 
 def write_yaml(obj, filename):

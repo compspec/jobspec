@@ -37,6 +37,29 @@ If run from python, the function "satisfied" would return False and the broker c
 is expected to be in JSON and our jobspec files are in yaml, so we can throw them into the same examples directory without issue.
 
 
+### Submit to a Hierarchy
+
+#### 1. Start Flux
+
+Start up the development environment to find yourself in a container with flux. Start a test instance:
+
+```bash
+flux start --test-size=4
+```
+
+Note that we have 4 faux nodes and 40 faux cores.
+
+```bash
+flux resource list
+```
+```console
+     STATE NNODES   NCORES    NGPUS NODELIST
+      free      4       40        0 194c2b9f4f3c,194c2b9f4f3c,194c2b9f4f3c,194c2b9f4f3c
+ allocated      0        0        0
+      down      0        0        0
+```
+
+
 ### Run
 
 #### 1. Start Flux

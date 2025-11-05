@@ -46,6 +46,15 @@ def get_parser():
     )
     subparsers.add_parser("version", description="show software version")
 
+    # start an instane hierarchy
+    start = subparsers.add_parser(
+        "start",
+        formatter_class=argparse.RawTextHelpFormatter,
+        description="start an instance hierarchy",
+    )
+    start.add_argument("config", help="configuration file for hierarchy")
+    start.add_argument("-o", "--out", help="output directory for hierarchy assets", default=None)
+
     # Maybe this warrants a better name, but this seems to be what we'd want to do -
     # run a jobspec
     run = subparsers.add_parser(
@@ -125,6 +134,8 @@ def run_jobspec():
         from .run import main
     elif args.command == "satisfy":
         from .satisfy import main
+    elif args.command == "start":
+        from .start import main
     else:
         help(1)
     main(args, extra)

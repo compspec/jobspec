@@ -9,8 +9,9 @@
 
 This library includes a cluster agnostic language to setup a job (one unit of work in a jobspec).
 It is a transformational layer, or a simple language that converts steps needed to prepare a job
-for a specific clusters scheduler. We are currently prototyping off of the Flux JobSpec, and intent
-to derive some variant between that and something more. It is JobSpec... the next generation! 🚀️
+for a specific clusters scheduler. It also provides a means to submit to a hierarchy.
+We are currently prototyping off of the Flux JobSpec, and intend to derive some variant
+between that and something more. It is JobSpec... the next generation! 🚀️
 
 ⭐️ [Documentation](https://compspec.github.io/jobspec) ⭐️
 

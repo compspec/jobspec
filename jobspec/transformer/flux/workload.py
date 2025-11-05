@@ -1,11 +1,13 @@
 import copy
+import os
+import tempfile
 
 import jobspec.core as js
 import jobspec.core.resources as rcore
 from jobspec.logger import LogColors
 from jobspec.runner import TransformerBase
 
-from .steps import batch, stage, submit
+from .steps import batch, broker, stage, submit
 
 
 class FluxWorkload(TransformerBase):
@@ -28,6 +30,30 @@ class FluxWorkload(TransformerBase):
         prefix = "flux workload".ljust(15)
         print(f"=> {LogColors.OKCYAN}{prefix}{LogColors.ENDC}")
 
+    def generate_uri(self, name):
+        """
+        Add a URI, named for a task.
+        """
+        # Since multiple starts can happen with equivalently named
+        # groups, ensure we have a unique name
+        if name in self.uris:
+            count = int(name.split("-")[-1])
+            count += 1
+            name = f"{name}-{count}"
+        else:
+            name = f"{name}-0"
+
+        self.uris[name] = self.uri_dir(name)
+        return self.uris[name]
+
+    def uri_dir(self, name):
+        """
+        Get (and create) the uri root directory if it isn't done yet.
+        """
+        if not self._uri_dir:
+            self._uri_dir = tempfile.mkdtemp(prefix="flux-broker-")
+        return os.path.join(self._uri_dir, name)
+
     def parse(self, jobspec):
         """
         Parse the jobspec into tasks for flux.
@@ -35,6 +61,8 @@ class FluxWorkload(TransformerBase):
         # Reset the jobspec and groups and tasks
         self.js = jobspec
         self.group_lookup = {}
+        self.uris = {}
+        self._uri_dir = None
 
         # Top level, a-la-carte tasks (steps)
         self.tasks = []
@@ -43,8 +71,11 @@ class FluxWorkload(TransformerBase):
         # are given a name based on order, and assumed not to be linked to anything
         for i, group in enumerate(self.js.get("groups") or []):
             name = group.get("name") or f"batch-{i}"
-            self.group_lookup[name] = group
+            self.group_lookup[name] = copy.deepcopy(group)
 
+        import IPython
+
+        IPython.embed()
         # We will return a listing of steps to complete - flux submit each
         # A group referenced within a task group is parsed there
         tasks = self.js.get("tasks") or []
@@ -55,14 +86,7 @@ class FluxWorkload(TransformerBase):
         # We copy because otherwise the dict changes size when the task parser removes
         groups = copy.deepcopy(self.group_lookup)
         for name, group in groups.items():
-            # Check if the group was already removed by another group task,
-            # and don't run if it was!
-            if name not in self.group_lookup:
-                continue
-
-            self.tasks.insert(
-                0, self.parse_group(group, name, self.resources, requires=self.requires)
-            )
+            self.tasks.append(self.parse_group(group, name, self.resources, requires=self.requires))
 
         # Return the transformer to call run to
         return self.tasks
@@ -99,7 +123,7 @@ class FluxWorkload(TransformerBase):
         # Group resources don't have a slot
         group_resources = js.Resources(rcore.parse_resource_subset(resources, group_resources))
 
-        # Parse the task steps for the group
+        # Parse the task steps for the group.
         tasks = group.get("tasks") or []
         steps = []
         if tasks:
@@ -148,7 +172,22 @@ class FluxWorkload(TransformerBase):
         # artifact metadata first.
         task_requires = js.Requires(requires).update(task.get("requires"))
 
-        # Prepare a submit step
+        # If a task is a request to start, that's what we do!
+        if task.get("start"):
+
+            # Generate a predictable URI for the broker
+            uri_path = self.generate_uri(name)
+            return broker(
+                self.js,
+                name=name,
+                resources=task_resources,
+                attributes=task_attributes,
+                requires=task_requires,
+                task=task,
+                uri=uri_path,
+            )
+
+        # Otherwise, prepare a submit step
         return submit(
             self.js,
             name=name,
@@ -185,8 +224,7 @@ class FluxWorkload(TransformerBase):
                         f"Task {name} is looking for group {group_name} that is not defined."
                     )
 
-                # We assume a group is used once
-                del self.group_lookup[group_name]
+                # Do NOT assume a group is used just once
                 new_step = self.parse_group(
                     group, group_name, resources, requires=requires, attributes=attributes
                 )
@@ -198,7 +236,6 @@ class FluxWorkload(TransformerBase):
                 )
 
             steps.append(new_step)
-
         return steps
 
 

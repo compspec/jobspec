@@ -30,22 +30,25 @@ def main():
 
     # Run the throughput test using the specialized 'throughput' method
     time0 = time.time()
-    jobs = hierarchy.throughput(args.command, args.njobs)
+    results = hierarchy.throughput(args.command, args.njobs)
     
-    if not jobs:
+    if not results:
         print(f"{LogColors.RED}No jobs were tracked. Cannot calculate throughput.{LogColors.ENDC}")
         return
 
-    # 3. Analyze and print results (logic is unchanged)
-    first = jobs[min(jobs.keys(), key=lambda x: jobs[x].get("submit", type("o", (), {"timestamp": float('inf')})()).timestamp)]
-    last = jobs[max(jobs.keys(), key=lambda x: jobs[x].get("clean", type("o", (), {"timestamp": float('-inf')})()).timestamp)]
-    lastsubmit = jobs[max(jobs.keys(), key=lambda x: jobs[x]["t_submit"])]
-    
-    submit_time = lastsubmit["t_submit"] - time0
+    # Earliest start, latest end, total time to submit
+    start_time = min(results['start_times'])
+    end_time = max(results['end_times'])
+    submit_start_time = min(results['submit_times'])
+    submit_end_time = max(results['submit_end_times'])
+
+    # This is JUST submit
+    submit_time = submit_end_time-submit_start_time    
     sjps = args.njobs / submit_time if submit_time > 0 else float('inf')    
     script_runtime = time.time() - time0
 
-    job_runtime = last["clean"].timestamp - first["submit"].timestamp
+    # This includes the job running - submit_t through clenaup_t
+    job_runtime = end_time - start_time
     jps = args.njobs / job_runtime if job_runtime > 0 else float('inf')
     jpsb = args.njobs / script_runtime if script_runtime > 0 else float('inf')
 

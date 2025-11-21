@@ -1,9 +1,17 @@
+import tempfile  # Add to your imports
+import subprocess  # Add to your imports
+import shlex  # Add to your imports
+import multiprocessing
+import threading
 import itertools
+import os
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
+import multiprocessing
 import time
 
 import jobspec.utils as utils
@@ -21,6 +29,8 @@ class FluxHierarchy:
     A FluxHierarchy allows for immediate or dynamic submisison of
     jobs to a hierarchy of Flux instances. To start, we calculate
     instance sizes based on the resources given at the top level.
+
+    # TODO: should be able to read in directory of active sockets.
     """
 
     def __init__(self, config_path, outdir=None):
@@ -98,9 +108,10 @@ class FluxHierarchy:
             return
         # IMPORTANT: if you do this immediately it will fail - the sockets need a setup delay
         self.pprint(f"\nWaiting for {len(self.uris)} leaf brokers...\n")
-        time.sleep(5)
+        time.sleep(10)
         for name, uri in self.uris.items():
             self.handles[name] = flux.Flux(uri)
+            self.handles[name].uri = uri
         self.pprint(f"Connected!\n")
 
     def interactive(self):
@@ -243,13 +254,17 @@ class FluxHierarchy:
 
     def submit_jobs(self, commands):
         """
-        Submits a list of jobs asynchronously across all leaf brokers.
+        Submits a list of jobs using a multiprocessing pool where each
+        worker executes `flux bulksubmit`.
         """
-        # Create a JobspecV1 object for each unique command
-        jobspecs = [flux.job.JobspecV1.from_command(cmd) for cmd in commands]
-        self.pprint(f"Submitting {len(jobspecs)} unique jobs across {len(self.handles)} workers...")
-        runner = AsyncJobRunner(list(self.handles.values()))
-        return runner.run(jobspecs)
+        self.pprint(f"Starting submission of {len(commands)} jobs...")
+
+        # Instantiate and use the MultiprocessBulkRunner
+        runner = MultiprocessBulkRunner(list(self.handles.values()))
+        results = runner.run(commands)
+
+        self.pprint("Submission process complete.\n")
+        return results
 
     def throughput(self, command, count=100):
         """
@@ -259,61 +274,21 @@ class FluxHierarchy:
         commands_list = [command for _ in range(count)]
         return self.submit_jobs(commands_list)
 
-
-class AsyncJobRunner:
-    """
-    Manage asynchronous bulk submission of a list of jobspecs.
-
-    I based this on src/tests/throughput.py from Flux. Note
-    that likely in the future when a handle has a unique shape
-    (that we want to understand to submit to) we will store them
-    as a lookup, with a hash for the shape. For now, list!
-    """
-
-    def __init__(self, handles):
-        self.handles = handles
-        self.jobs = {}
-
-    def event_cb(self, future, jobid):
-        """Callback for job events (start, finish, clean, etc.)."""
-        event = future.get_event()
-        if event:
-            self.jobs[jobid][event.name] = event
-
-    def submit_cb(self, future, handle):
+    def throughput(self, command, count=100):
         """
-        First callback after submit_async. Its only job is to get the
-        job ID from the future and call the next handler. This correctly
-        matches the C function signature that .then() expects.
+        A specialized function to test throughput by submitting one command many times.
         """
-        try:
-            # future.handle contains the specific handle used for this submission
-            self.handle_submit(future.get_id(), handle)
-        except Exception as exc:
-            print(f"Submission failed: {exc}", file=sys.stderr)
+        print(f"Preparing throughput test for command: {' '.join(command)}")
+        commands_list = [command for _ in range(count)]
+        return self.submit_jobs(commands_list)
 
-    def handle_submit(self, jobid, handle):
+    def throughput(self, command, count=100):
         """
-        Second part of the submission chain: sets up the event watcher.
+        A specialized function to test throughput by submitting one command many times.
         """
-        self.jobs[jobid] = {"t_submit": time.time()}
-        fut = flux.job.event_watch_async(handle, jobid)
-        fut.then(self.event_cb, jobid)
-
-    def run(self, jobspecs):
-        """
-        Run one or more jobspecs, cycling through handles (Flux URI)
-        """
-        handle_cycler = itertools.cycle(self.handles)
-
-        for spec in jobspecs:
-            handle = next(handle_cycler)
-            spec_string = spec.dumps()
-            flux.job.submit_async(handle, spec_string).then(self.submit_cb, handle)
-
-        if self.handles:
-            self.handles[0].reactor_run()
-        return self.jobs
+        print(f"Preparing throughput test for command: {' '.join(command)}")
+        commands_list = [command for _ in range(count)]
+        return self.submit_jobs(commands_list)
 
 
 def get_jobspec_from_dry_run(command, resources):
@@ -334,3 +309,234 @@ def get_jobspec_from_dry_run(command, resources):
     cmd += command
     process = subprocess.run(cmd, capture_output=True, text=True, check=True)
     return json.loads(process.stdout)
+
+
+class MultiprocessBulkRunner:
+    """
+    Uses a multiprocessing pool to perform parallel bulk submissions.
+
+    Each worker process is assigned a chunk of commands and a single handle (URI).
+    It writes its commands to a temporary file and executes `flux bulksubmit`
+    via a subprocess, achieving high parallelism and throughput.
+    """
+
+    def __init__(self, handles):
+        if not handles:
+            raise ValueError("Runner requires at least one handle.")
+        self.handles = handles
+        self.jobs_to_complete = 0
+        self.completion_event = None
+        self.jobs = {}
+
+    @staticmethod
+    def _chunkify(data, num_chunks):
+        if not data or num_chunks <= 0:
+            return []
+        chunks = [[] for _ in range(num_chunks)]
+        for i, item in enumerate(data):
+            chunks[i % num_chunks].append(item)
+        return chunks
+
+    @staticmethod
+    def _cffi_submit_worker(command_chunk, uri_string):
+        """
+        A pickle-safe worker that connects its own handle and uses a tight
+        loop of `submit_async` and `get_id` for submission.
+        """
+        pid = os.getpid()
+        job_ids = []
+        handle = None
+        # 1. Create a fresh handle inside the worker process
+        handle = flux.Flux(uri_string)
+
+        start_time = time.monotonic()
+
+        # 2. Loop and submit as fast as possible in memory
+        for command in command_chunk:
+            spec = flux.job.JobspecV1.from_command(command)
+            future = flux.job.submit_async(handle, spec.dumps(), waitable=True)
+            # get_id() blocks briefly but is necessary to confirm submission
+            job_ids.append(future.get_id())
+
+        end_time = time.monotonic()
+        return (len(command_chunk), start_time, end_time, job_ids, uri_string)
+
+    @staticmethod
+    def _async_cffi_worker(command_chunk, uri_string):
+        """
+        A pickle-safe worker that uses a pipelined CFFI approach for submission.
+        """
+        pid = os.getpid()
+        handle = None
+        handle = flux.Flux(uri_string)
+        futures = []
+        job_ids = []
+        start_time = time.monotonic()
+
+        # Submit all jobs without waiting for individual ACKs.
+        # This blasts the broker with requests, just like bulksubmit.
+        for command in command_chunk:
+            spec = flux.job.JobspecV1.from_command(command)
+            # submit_async is non-blocking, it returns a future immediately
+            futures.append(flux.job.submit_async(handle, spec.dumps(), waitable=True))
+
+        # Now, loop through the futures and get the IDs. The requests are
+        # already "in-flight" or queued on the broker side.
+        for f in futures:
+            job_ids.append(f.get_id())
+
+        end_time = time.monotonic()
+        duration = end_time - start_time
+        print(
+            f"  - True Async CFFI Worker [{pid}] submitted {len(job_ids)} jobs in {duration:.2f}s."
+        )
+        return (len(command_chunk), start_time, end_time, job_ids, uri_string)
+
+    @staticmethod
+    def _bulk_submit_worker(command_chunk, uri_string):
+        """
+        Worker that uses `flux proxy` to correctly target a leaf broker and
+        pipes commands to `flux bulksubmit` via stdin for maximum performance.
+        """
+        pid = os.getpid()
+
+        input_string = "\n".join(shlex.join(command) for command in command_chunk)
+
+        with tempfile.TemporaryFile(mode="w+") as stdout_pipe, tempfile.TemporaryFile(
+            mode="w+"
+        ) as stderr_pipe:
+            cmd = ["flux", "proxy", uri_string, "flux", "bulksubmit"]
+
+            start_time = time.monotonic()
+            subprocess.run(
+                cmd,
+                input=input_string,
+                stdout=stdout_pipe,
+                stderr=stderr_pipe,
+                text=True,
+                check=True,
+            )
+            end_time = time.monotonic()
+
+            stdout_pipe.seek(0)
+            job_ids = [line.strip() for line in stdout_pipe if line.strip()]
+
+            duration = end_time - start_time
+            print(
+                f"  - Worker [{pid}] submitted {len(job_ids)} jobs in {duration:.2f}s to {uri_string}."
+            )
+
+            # length of command chunk is job count
+            return (len(command_chunk), start_time, end_time, job_ids, uri_string)
+
+    def run(self, commands):
+        """
+        Distributes commands to a multiprocessing pool for parallel bulk submission.
+        """
+        if not commands:
+            print("No commands to submit.")
+            return {"total_submitted": 0}
+
+        num_handles = len(self.handles)
+        print(
+            f"\n=> Preparing parallel bulk submission for {len(commands)} jobs across {num_handles} handles..."
+        )
+
+        # 1. Chunk commands and pair with URIs for the workers.
+        command_chunks = self._chunkify(commands, num_handles)
+        handle_uris = [h.uri for h in self.handles]
+        tasks = [(c, u) for c, u in zip(command_chunks, handle_uris) if c]
+
+        if not tasks:
+            print("No tasks could be created for submission.")
+            return {"total_submitted": 0}
+
+        n_workers = min(os.cpu_count(), len(tasks))
+        print(f"=> Creating a pool of {n_workers} worker processes...")
+        results = []
+
+        # 2. Run workers to perform parallel bulk submissions.
+        with multiprocessing.Pool(processes=n_workers) as pool:
+            worker_args = [(chunk, uri) for chunk, uri in tasks]
+
+            # starmap blocks until all workers are complete.
+            results += pool.starmap(self._async_cffi_worker, worker_args)
+            print(f"=> All worker processes finished.")
+
+        total_submitted = sum([x[0] for x in results])
+
+        print(f"\n=> Summary:")
+        print(f"  - Approximate submissions per worker: {results[0][0]}")
+        print(f"  - Total jobs submitted: {total_submitted} / {len(commands)}")
+
+        # Measure Time to Final Completion
+        print(f"\nWaiting for {total_submitted} jobs to complete...")
+        self.jobs.clear()
+        self.jobs_to_complete = total_submitted
+        self.completion_event = threading.Event()
+
+        for task_result in results:
+            job_ids = task_result[3]
+            uri_string = task_result[4]
+            handle = flux.Flux(uri_string)
+
+            for i, jobid in enumerate(job_ids):
+                jobid = flux.job.JobID(jobid)
+                # Create a future that resolves when the job is clean.
+                fut = flux.job.wait_async(handle, jobid)
+                # When it resolves, call our callback, passing it the jobid AND the handle
+                # so it can fetch the final job info.
+                fut.then(self._job_complete_cb, jobid, handle)
+                # self.job_complete_cb(jobid, handle)
+                # print(f'{i} of {len(job_ids)}', end="\r")
+            handle.reactor_run()
+
+        self.completion_event.wait()
+        print("=> All jobs complete. Finalizing results...")
+
+        # Now, build the final data structures from the collected info
+        start_times = []
+        end_times = []
+
+        # The job_info_dict is now fully populated...
+        for info in self.jobs.values():
+            start_times.append(info["t_submit"])
+            end_times.append(info["t_cleanup"])
+
+        # Reconstruct the exact return signature you had
+        return {
+            "total_submitted": total_submitted,
+            "results_per_worker": results,
+            "start_times": start_times,
+            "end_times": end_times,
+            "submit_times": [res[1] for res in results],
+            "submit_end_times": [res[2] for res in results],
+        }
+
+    def job_complete_cb(self, jobid, handle):
+        """
+        Callback executed when a job is complete. It fetches the job's
+        final info and stores it in the shared dictionary.
+        """
+        try:
+            self.jobs[jobid] = flux.job.get_job(handle, int(jobid))
+        except Exception as e:
+            print(f"There was an issue with job completion callback: {e}")
+        finally:
+            self.jobs_to_complete -= 1
+            if self.jobs_to_complete <= 0:
+                self.completion_event.set()
+
+    def _job_complete_cb(self, future, jobid, handle):
+        """
+        Callback executed when a job is complete. It fetches the job's
+        final info and stores it in the shared dictionary.
+        """
+        try:
+            self.jobs[jobid] = flux.job.get_job(handle, int(jobid))
+        except Exception as e:
+            print(f"There was an issue with job completion callback: {e}")
+        finally:
+            self.jobs_to_complete -= 1
+            if self.jobs_to_complete <= 0:
+                self.completion_event.set()

@@ -1,0 +1,26 @@
+version: 2
+
+# The entrypoint is where to start the hierarchy.
+entrypoint: level-1
+
+# Groups are templates for a level in the hierarchy.
+groups:
+  # Each of these are intermediate groups - they only exist to launch children.
+  - name: level-1
+    resources: level1
+    launch:
+      - group: level-2
+        count: 8
+
+  - name: level-2
+    resources: level2
+ 
+
+# These are nested resources. If we have 8 at the top, we have to split that up
+resources:
+  level1: # Consumed by the single level-1 broker
+    count: 8
+    type: core
+  level2: # Consumed by each of the two level-2 brokers
+    count: 1
+    type: core

@@ -1,17 +1,11 @@
-import tempfile  # Add to your imports
-import subprocess  # Add to your imports
-import shlex  # Add to your imports
-import multiprocessing
-import threading
-import itertools
-import os
 import json
-import os
-import re
-import subprocess
-import sys
-import tempfile
 import multiprocessing
+import os
+import shlex  # Add to your imports
+import subprocess  # Add to your imports
+import sys
+import tempfile  # Add to your imports
+import threading
 import time
 
 import jobspec.utils as utils
@@ -20,17 +14,19 @@ from jobspec.logger import LogColors
 try:
     import flux
     import flux.job
+    from flux.progress import Bottombar
 except ImportError:
     flux = None
 
 
 class FluxHierarchy:
     """
-    A FluxHierarchy allows for immediate or dynamic submisison of
+    A FluxHierarchy allows for immediate or dynamic submission of
     jobs to a hierarchy of Flux instances. To start, we calculate
     instance sizes based on the resources given at the top level.
 
     # TODO: should be able to read in directory of active sockets.
+    # TODO: allow different job shapes / specs.
     """
 
     def __init__(self, config_path, outdir=None):
@@ -43,16 +39,23 @@ class FluxHierarchy:
         # You can't handle me right now.
         self.uris = {}
         self.handles = {}
-
-        self.outdir = outdir or tempfile.mkdtemp(prefix="flux-hierarchy-")
-        self.socket_dir = os.path.join(self.outdir, "sockets")
-        os.makedirs(self.socket_dir, exist_ok=True)
+        self.init_structure(outdir)
         self.groups = {g["name"]: g for g in self.config["groups"]}
 
         # Still thinking about this one. I think it should be possible
         # to define an entire tree, but then only create a subgraph of it
         # This is the entrypoint.
         self.entrypoint = self.config["entrypoint"]
+
+    def init_structure(self, outdir):
+        """
+        Create output directories.
+        """
+        self.outdir = outdir or tempfile.mkdtemp(prefix="flux-hierarchy-")
+        self.socket_dir = os.path.join(self.outdir, "sockets")
+        self.logs_dir = os.path.join(self.outdir, "logs")
+        for path in self.socket_dir, self.logs_dir:
+            os.makedirs(path, exist_ok=True)
 
     @property
     def resources(self):
@@ -142,6 +145,7 @@ class FluxHierarchy:
 
         # The resources label points to resources for the group
         label = group["resources"]
+        log_path = os.path.join(self.logs_dir, group_name + ".out")
         jobspec_filename = os.path.abspath(
             os.path.join(self.outdir, f"jobspec-{group_name}-{instance_path}.json")
         )
@@ -155,9 +159,11 @@ class FluxHierarchy:
             self.uris[instance_path] = uri_string
 
             command = ["flux", "broker", "-S", f"local-uri={uri_string}", "sleep", "infinity"]
-            jobspec = get_jobspec_from_dry_run(command, self.resources[label])
+            jobspec = get_jobspec_from_dry_run(command, self.resources[label], log_path)
 
         # If we get here, we are generating an intermediate node.
+        # Note that I tried first specifying cores/tasks, but it works better
+        # to ask for exclusive.
         else:
             # Recursively generate all child files and collect their paths
             child_paths = []
@@ -179,7 +185,7 @@ class FluxHierarchy:
 
             # 3. Get the jobspec for this intermediate broker
             command = ["flux", "broker", script_path]
-            jobspec = get_jobspec_from_dry_run(command, self.resources[label])
+            jobspec = get_jobspec_from_dry_run(command, self.resources[label], log_path)
 
         # Save the jobspec for the leaf or intermediate node.
         utils.write_json(jobspec, jobspec_filename)
@@ -252,16 +258,20 @@ class FluxHierarchy:
                 new_prefix = prefix + ("    " if is_last else "│   ")
                 self._print_tree_recursive(child_name, new_prefix, is_child_last)
 
-    def submit_jobs(self, commands):
+    def submit_jobs(self, commands, equivalent=True):
         """
         Submits a list of jobs using a multiprocessing pool where each
-        worker executes `flux bulksubmit`.
+        worker executes `flux bulksubmit`. If equivalent is True, all
+        the jobspecs are the same (e.g., throughput use case).
         """
         self.pprint(f"Starting submission of {len(commands)} jobs...")
 
         # Instantiate and use the MultiprocessBulkRunner
         runner = MultiprocessBulkRunner(list(self.handles.values()))
-        results = runner.run(commands)
+        if equivalent:
+            results = runner.run_clones(commands[0], count=len(commands))
+        else:
+            results = runner.run(commands, equivalent=True)
 
         self.pprint("Submission process complete.\n")
         return results
@@ -272,41 +282,31 @@ class FluxHierarchy:
         """
         print(f"Preparing throughput test for command: {' '.join(command)}")
         commands_list = [command for _ in range(count)]
-        return self.submit_jobs(commands_list)
-
-    def throughput(self, command, count=100):
-        """
-        A specialized function to test throughput by submitting one command many times.
-        """
-        print(f"Preparing throughput test for command: {' '.join(command)}")
-        commands_list = [command for _ in range(count)]
-        return self.submit_jobs(commands_list)
-
-    def throughput(self, command, count=100):
-        """
-        A specialized function to test throughput by submitting one command many times.
-        """
-        print(f"Preparing throughput test for command: {' '.join(command)}")
-        commands_list = [command for _ in range(count)]
-        return self.submit_jobs(commands_list)
+        return self.submit_jobs(commands_list, equivalent=True)
 
 
-def get_jobspec_from_dry_run(command, resources):
+def get_jobspec_from_dry_run(command, resources, log_path=None):
     """
     Use flux to generate a json jobspec with flux submit --dryrun
     """
     cores = resources.get("cores")
     nodes = resources.get("nodes")
     tasks = resources.get("count")
+    exclusive = resources.get('exclusive') in ["true", "yes", "True", True]
 
     cmd = ["flux", "submit", "--dry-run"]
+    if log_path is not None:
+        cmd += ['--out', log_path, '--err', log_path]
     if nodes is not None:
         cmd += ["-N", str(nodes)]
     if tasks is not None:
         cmd += ["-n", str(tasks)]
     if cores is not None:
         cmd += ["--cores", str(cores)]
+    if exclusive:
+        cmd += ['--exclusive']
     cmd += command
+    print(cmd)
     process = subprocess.run(cmd, capture_output=True, text=True, check=True)
     return json.loads(process.stdout)
 
@@ -336,30 +336,6 @@ class MultiprocessBulkRunner:
         for i, item in enumerate(data):
             chunks[i % num_chunks].append(item)
         return chunks
-
-    @staticmethod
-    def _cffi_submit_worker(command_chunk, uri_string):
-        """
-        A pickle-safe worker that connects its own handle and uses a tight
-        loop of `submit_async` and `get_id` for submission.
-        """
-        pid = os.getpid()
-        job_ids = []
-        handle = None
-        # 1. Create a fresh handle inside the worker process
-        handle = flux.Flux(uri_string)
-
-        start_time = time.monotonic()
-
-        # 2. Loop and submit as fast as possible in memory
-        for command in command_chunk:
-            spec = flux.job.JobspecV1.from_command(command)
-            future = flux.job.submit_async(handle, spec.dumps(), waitable=True)
-            # get_id() blocks briefly but is necessary to confirm submission
-            job_ids.append(future.get_id())
-
-        end_time = time.monotonic()
-        return (len(command_chunk), start_time, end_time, job_ids, uri_string)
 
     @staticmethod
     def _async_cffi_worker(command_chunk, uri_string):
@@ -393,19 +369,37 @@ class MultiprocessBulkRunner:
         return (len(command_chunk), start_time, end_time, job_ids, uri_string)
 
     @staticmethod
-    def _bulk_submit_worker(command_chunk, uri_string):
+    def bulk_run_worker(command, uri_string, count):
+        """
+        Use original Flux Bulk Run for worker.
+        """
+        pid = os.getpid()
+        handle = flux.Flux(uri_string)
+        # This defaults to 1 task, 1 core == 1 slot
+        spec = flux.job.JobspecV1.from_command(command)
+        spec.setattr("system.exec.test.run_duration", "0.001s")
+
+        start_time = time.monotonic()
+        bulk = BulkRun(handle, count, spec).run()
+        end_time = time.monotonic()
+        duration = end_time - start_time
+        print(f"  - Bulk Worker [{pid}] submitted {len(bulk.jobs)} jobs in {duration:.2f}s.")
+        return (count, start_time, end_time, bulk.jobs, uri_string)
+
+    @staticmethod
+    def _bulk_submit_worker(command, uri_string, count):
         """
         Worker that uses `flux proxy` to correctly target a leaf broker and
         pipes commands to `flux bulksubmit` via stdin for maximum performance.
         """
         pid = os.getpid()
 
-        input_string = "\n".join(shlex.join(command) for command in command_chunk)
+        input_string = "\n".join(shlex.join(command) for x in range(count))
 
         with tempfile.TemporaryFile(mode="w+") as stdout_pipe, tempfile.TemporaryFile(
             mode="w+"
         ) as stderr_pipe:
-            cmd = ["flux", "proxy", uri_string, "flux", "bulksubmit"]
+            cmd = ["flux", "proxy", uri_string, "flux", "bulksubmit", "--wait"]
 
             start_time = time.monotonic()
             subprocess.run(
@@ -417,17 +411,62 @@ class MultiprocessBulkRunner:
                 check=True,
             )
             end_time = time.monotonic()
-
             stdout_pipe.seek(0)
-            job_ids = [line.strip() for line in stdout_pipe if line.strip()]
-
             duration = end_time - start_time
-            print(
-                f"  - Worker [{pid}] submitted {len(job_ids)} jobs in {duration:.2f}s to {uri_string}."
-            )
+            handle = flux.Flux(uri_string)
+            listing = flux.job.list.job_list(handle).get()["jobs"]
 
-            # length of command chunk is job count
-            return (len(command_chunk), start_time, end_time, job_ids, uri_string)
+            # Add metadata organized as others (as we expect)
+            jobs = {}
+            for job in listing:
+                print(job)
+                job["clean"] = {"timestamp": job["t_cleanup"]}
+                job["submit"] = {"timestamp": job["t_submit"]}
+                jobs[job["id"]] = job
+            print(
+                f"  - Worker [{pid}] submitted {len(jobs)} jobs in {duration:.2f}s to {uri_string}."
+            )
+            return (count, start_time, end_time, jobs, uri_string)
+
+    def distribute(self, total, slots):
+        """
+        Distribute a total count into some number of slots
+        """
+        # Break into base sizes
+        base_count = total // slots
+        # Distribute remainders
+        remainder = total % slots
+        slots = [base_count] * slots
+        for i in range(remainder):
+            slots[i] += 1
+        return slots
+
+    def run_clones(self, command, count):
+        """
+        Run many instances of an equivalent command.
+        """
+        num_handles = len(self.handles)
+        print(
+            f"\n=> Preparing parallel bulk submission for {count} jobs across {num_handles} handles..."
+        )
+
+        # Chunk command counts and pair with URIs for the workers.
+        handle_uris = [h.uri for h in self.handles]
+        counts = self.distribute(count, num_handles)
+        print(counts)
+        tasks = [(command, uri, count) for uri, count in zip(handle_uris, counts) if count]
+        n_workers = min(os.cpu_count(), len(tasks))
+        print(f"=> Creating a pool of {n_workers} worker processes...")
+        results = []
+
+        # 2. Run workers to perform parallel bulk submissions.
+        # Note from V: I tested without starmap, same result.
+        with multiprocessing.Pool(processes=n_workers) as pool:
+            worker_args = [(command, chunk, uri) for command, chunk, uri in tasks]
+            results += pool.starmap(self.bulk_run_worker, worker_args)
+            print(f"=> All worker processes finished.")
+
+        return summarize_results(results, count)
 
     def run(self, commands):
         """
@@ -453,65 +492,19 @@ class MultiprocessBulkRunner:
 
         n_workers = min(os.cpu_count(), len(tasks))
         print(f"=> Creating a pool of {n_workers} worker processes...")
-        results = []
 
         # 2. Run workers to perform parallel bulk submissions.
         with multiprocessing.Pool(processes=n_workers) as pool:
             worker_args = [(chunk, uri) for chunk, uri in tasks]
 
             # starmap blocks until all workers are complete.
-            results += pool.starmap(self._async_cffi_worker, worker_args)
+            # TODO this function needs to be written based off of bulk_run_worker
+            # but instead allowing for unique commands.
+            results = pool.starmap(self._bulk_submit_worker, worker_args)
             print(f"=> All worker processes finished.")
 
-        total_submitted = sum([x[0] for x in results])
-
-        print(f"\n=> Summary:")
-        print(f"  - Approximate submissions per worker: {results[0][0]}")
-        print(f"  - Total jobs submitted: {total_submitted} / {len(commands)}")
-
-        # Measure Time to Final Completion
-        print(f"\nWaiting for {total_submitted} jobs to complete...")
-        self.jobs.clear()
-        self.jobs_to_complete = total_submitted
-        self.completion_event = threading.Event()
-
-        for task_result in results:
-            job_ids = task_result[3]
-            uri_string = task_result[4]
-            handle = flux.Flux(uri_string)
-
-            for i, jobid in enumerate(job_ids):
-                jobid = flux.job.JobID(jobid)
-                # Create a future that resolves when the job is clean.
-                fut = flux.job.wait_async(handle, jobid)
-                # When it resolves, call our callback, passing it the jobid AND the handle
-                # so it can fetch the final job info.
-                fut.then(self._job_complete_cb, jobid, handle)
-                # self.job_complete_cb(jobid, handle)
-                # print(f'{i} of {len(job_ids)}', end="\r")
-            handle.reactor_run()
-
-        self.completion_event.wait()
-        print("=> All jobs complete. Finalizing results...")
-
-        # Now, build the final data structures from the collected info
-        start_times = []
-        end_times = []
-
-        # The job_info_dict is now fully populated...
-        for info in self.jobs.values():
-            start_times.append(info["t_submit"])
-            end_times.append(info["t_cleanup"])
-
-        # Reconstruct the exact return signature you had
-        return {
-            "total_submitted": total_submitted,
-            "results_per_worker": results,
-            "start_times": start_times,
-            "end_times": end_times,
-            "submit_times": [res[1] for res in results],
-            "submit_end_times": [res[2] for res in results],
-        }
+        # This likely needs refactor too for this case.
+        return summarize_results(results, len(commands))
 
     def job_complete_cb(self, jobid, handle):
         """
@@ -540,3 +533,95 @@ class MultiprocessBulkRunner:
             self.jobs_to_complete -= 1
             if self.jobs_to_complete <= 0:
                 self.completion_event.set()
+
+
+class BulkRun:
+    """
+    This is the same BulkRun that flux src/tests/throughput.py uses.
+    """
+
+    def __init__(self, handle, total, jobspec):
+        self.handle = handle
+        self.total = total
+        self.jobspec = jobspec
+        self.jobs = {}
+        self.submitted = 0
+        self.running = 0
+        self.complete = 0
+        self.bbar = None
+
+    def statusline(self, _bbar, _width):
+        return (
+            f"{self.total:>6} jobs: {self.submitted:>6} submitted, "
+            f"{self.running:>6} running, {self.complete} completed"
+        )
+
+    def event_cb(self, future, jobid):
+        event = future.get_event()
+        if event is not None:
+            if event.name == "submit":
+                self.submitted += 1
+                self.jobs[jobid][event.name] = event
+            elif event.name == "start":
+                self.running += 1
+            elif event.name == "finish":
+                self.running -= 1
+                self.complete += 1
+            elif event.name == "clean":
+                self.jobs[jobid][event.name] = event
+            if self.bbar:
+                self.bbar.update()
+
+    def handle_submit(self, jobid):
+        self.jobs[jobid] = {"t_submit": time.time()}
+        fut = flux.job.event_watch_async(self.handle, jobid)
+        fut.then(self.event_cb, jobid)
+
+    def submit_cb(self, future):
+        # pylint: disable=broad-except
+        try:
+            self.handle_submit(future.get_id())
+        except Exception as exc:
+            print(f"Submission failed: {exc}", file=sys.stderr)
+
+    def submit_async(self):
+        spec = self.jobspec.dumps()
+        for _ in range(self.total):
+            flux.job.submit_async(self.handle, spec).then(self.submit_cb)
+
+    def run(self):
+        self.bbar = Bottombar(self.statusline).start()
+        self.submit_async()
+        self.handle.reactor_run()
+        if self.bbar:
+            self.bbar.stop()
+        return self
+
+
+def summarize_results(results, count):
+    total_submitted = sum([x[0] for x in results])
+    print(f"\n=> Summary:")
+    print(f"  - Approximate submissions per worker: {results[0][0]}")
+    print(f"  - Total jobs submitted: {total_submitted} / {count}")
+
+    # Now, build the final data structures from the collected info
+    start_times = []
+    end_times = []
+
+    # The job_info_dict is now fully populated...
+    for info in results[0][3].values():
+        start_times.append(info["submit"]["timestamp"])
+        end_times.append(info["clean"]["timestamp"])
+
+    assert len(start_times) == count
+    assert len(end_times) == count
+
+    # Reconstruct the exact return signature you had
+    return {
+        "total_submitted": total_submitted,
+        "results_per_worker": results,
+        "start_times": start_times,
+        "end_times": end_times,
+        "submit_times": [res[1] for res in results],
+        "submit_end_times": [res[2] for res in results],
+    }

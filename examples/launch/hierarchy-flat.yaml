@@ -19,8 +19,5 @@ groups:
 # These are nested resources. If we have 8 at the top, we have to split that up
 resources:
   level1: # Consumed by the single level-1 broker
-    count: 8
-    type: core
-  level2: # Consumed by each of the two level-2 brokers
-    count: 1
-    type: core
+    nodes: 1
+    cores: 8

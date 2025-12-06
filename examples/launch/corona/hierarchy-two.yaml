@@ -8,11 +8,12 @@ groups:
   # Each of these are intermediate groups - they only exist to launch children.
   - name: level-1
     resources: level1
+    count: 2
 
 # These are nested resources. If we have 8 at the top, we have to split that up
 resources:
   level1: # Consumed by the single level-1 broker
-    cores: 8
+    cores: 48
     nodes: 1
 
 # TODO add jobspec definition
